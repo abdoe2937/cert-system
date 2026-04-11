@@ -1,0 +1,13 @@
+const express = require('express');
+const router = express.Router();
+const { getAllUsers, getUserById, markCompleted, sendCertificate } = require('../controllers/adminController');
+const { protect, adminOnly } = require('../middleware/auth');
+
+router.use(protect, adminOnly);
+
+router.get('/users', getAllUsers);
+router.get('/users/:id', getUserById);
+router.patch('/complete/:id', markCompleted);
+router.post('/send-certificate/:id', sendCertificate);
+
+module.exports = router;

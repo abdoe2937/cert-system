@@ -1,0 +1,64 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    @apply bg-slate-950 text-slate-100 font-body;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, h4 {
+    @apply font-display;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-gold-500 hover:bg-gold-600 text-white font-body font-semibold px-6 py-2.5 rounded-lg transition-all duration-200 shadow-md hover:shadow-gold-500/30 hover:shadow-lg active:scale-95;
+  }
+  .btn-secondary {
+    @apply border border-gold-500/40 hover:border-gold-500 text-gold-400 hover:text-gold-300 font-body font-medium px-6 py-2.5 rounded-lg transition-all duration-200 hover:bg-gold-500/10 active:scale-95;
+  }
+  .btn-danger {
+    @apply bg-red-600/20 hover:bg-red-600/40 border border-red-500/30 text-red-400 font-body font-medium px-4 py-2 rounded-lg transition-all duration-200 active:scale-95;
+  }
+  .card {
+    @apply bg-slate-900/80 border border-slate-700/50 rounded-2xl backdrop-blur-sm;
+  }
+  .input-field {
+    @apply w-full bg-slate-800/60 border border-slate-700/60 focus:border-gold-500/60 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-500 outline-none transition-all duration-200 font-body;
+  }
+  .badge-completed {
+    @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/15 text-emerald-400 border border-emerald-500/25;
+  }
+  .badge-pending {
+    @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-500/15 text-amber-400 border border-amber-500/25;
+  }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #0f172a; }
+::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #B8943F; }
+
+/* Gold shimmer for student code */
+.student-code {
+  background: linear-gradient(90deg, #B8943F, #fde047, #B8943F);
+  background-size: 200%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer 3s linear infinite;
+}
+@keyframes shimmer {
+  0% { background-position: 200% center; }
+  100% { background-position: -200% center; }
+}
+
+/* Table row hover */
+.table-row-hover:hover {
+  background: rgba(184, 148, 63, 0.05);
+}
