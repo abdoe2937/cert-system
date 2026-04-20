@@ -2,3 +2,6 @@ node_modules/
 frontend/node_modules/ 
 .env 
 certificates/ 
+backend/cards/
+backend/uploads/
+backend/certificates/
