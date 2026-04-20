@@ -20,9 +20,11 @@ const seed = async () => {
 
     const admin = await User.create({
       fullName: 'Super Admin',
+      fullNameEn: 'Super Admin',
+      fullNameAr: 'سوبر ادمن',
       email: 'admin@certify.com',
       password: 'admin123456',
-      phone: '+1000000000',
+      phone: '01000000000',
       role: 'admin',
     });
 

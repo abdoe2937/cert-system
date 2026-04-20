@@ -1,13 +1,15 @@
-const User = require('../models/User');
-const Certificate = require('../models/Certificate');
-const { generateCertificate } = require('../utils/pdfGenerator'); // ✅ صحّحنا الاسم
-const path = require('path');
-const fs = require('fs');
+const path = require("path");
+const fs = require("fs");
+const User = require("../models/User");
+const Certificate = require("../models/Certificate");
+const { generateCertificatePDF } = require("../utils/pdfGenerator");
+const { generateIDCard } = require("../utils/idCardGenerator");
+const { EXCEL_PATH } = require("../utils/excelService");
 
 // GET /api/admin/users
 const getAllUsers = async (req, res) => {
   try {
-    const users = await User.find({ role: 'user' }).sort({ createdAt: -1 });
+    const users = await User.find({ role: "user" }).sort({ createdAt: -1 });
     res.json({ success: true, count: users.length, users });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -18,7 +20,10 @@ const getAllUsers = async (req, res) => {
 const getUserById = async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
-    if (!user) return res.status(404).json({ success: false, message: 'المستخدم غير موجود' });
+    if (!user)
+      return res
+        .status(404)
+        .json({ success: false, message: "المستخدم غير موجود" });
     const certificates = await Certificate.find({ userId: user._id });
     res.json({ success: true, user, certificates });
   } catch (error) {
@@ -32,10 +37,13 @@ const markCompleted = async (req, res) => {
     const user = await User.findByIdAndUpdate(
       req.params.id,
       { isCompleted: true },
-      { new: true }
+      { new: true },
     );
-    if (!user) return res.status(404).json({ success: false, message: 'المستخدم غير موجود' });
-    res.json({ success: true, message: 'تم تحديد الطالب كمكتمل', user });
+    if (!user)
+      return res
+        .status(404)
+        .json({ success: false, message: "المستخدم غير موجود" });
+    res.json({ success: true, message: "تم تحديد الطالب كمكتمل", user });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -45,36 +53,22 @@ const markCompleted = async (req, res) => {
 const sendCertificate = async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
-    if (!user) return res.status(404).json({ success: false, message: 'المستخدم غير موجود' });
+    if (!user)
+      return res
+        .status(404)
+        .json({ success: false, message: "المستخدم غير موجود" });
 
-    const courseName = req.body.courseName || user.courseName || 'برنامج التطوع';
-    
-    // كود الشهادة
-    const certificateCode = user.studentCode || `CERT-${Date.now()}`;
-    
-    // التاريخ
-    const date = new Date().toLocaleDateString('ar-EG');
+    const courseName =
+      req.body.courseName || user.courseName || "Volunteering Program";
 
-    // ✅ توليد الـ PDF
-    const pdfBytes = await generateCertificate({
-      studentName: user.fullName,
+    const pdfUrl = await generateCertificatePDF({
+      studentName: user.fullNameEn || user.fullName || user.fullNameAr,
+      studentNameAr: user.fullNameAr,
+      profileImage: user.profileImage,
       courseName,
-      date,
-      certificateCode,
+      studentCode: user.studentCode,
+      issuedAt: new Date(),
     });
-
-    // ✅ حفظ الـ PDF في فولدر certificates
-    const fileName = `certificate-${user._id}-${Date.now()}.pdf`;
-    const filePath = path.join(__dirname, '../certificates', fileName);
-    
-    // تأكد إن الفولدر موجود
-    if (!fs.existsSync(path.join(__dirname, '../certificates'))) {
-      fs.mkdirSync(path.join(__dirname, '../certificates'));
-    }
-    
-    fs.writeFileSync(filePath, pdfBytes);
-
-    const pdfUrl = `/certificates/${fileName}`;
 
     const certificate = await Certificate.create({
       userId: user._id,
@@ -85,11 +79,50 @@ const sendCertificate = async (req, res) => {
 
     await User.findByIdAndUpdate(user._id, { isCompleted: true });
 
-    res.status(201).json({ success: true, message: 'تم إرسال الشهادة بنجاح', certificate });
+    res
+      .status(201)
+      .json({ success: true, message: "تم إرسال الشهادة بنجاح", certificate });
   } catch (error) {
-    console.error('Send certificate error:', error);
+    console.error("Send certificate error:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-module.exports = { getAllUsers, getUserById, markCompleted, sendCertificate };
+// POST /api/admin/generate-card/:id
+const generateCard = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user)
+      return res
+        .status(404)
+        .json({ success: false, message: "المستخدم غير موجود" });
+
+    const cardUrl = await generateIDCard({ user });
+
+    // احفظ الـ URL في الـ User
+    await User.findByIdAndUpdate(user._id, { cardUrl });
+
+    res.json({ success: true, message: "تم إنشاء الكارنيه", cardUrl });
+  } catch (error) {
+    console.error("Generate card error:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const exportExcel = (req, res) => {
+  if (!fs.existsSync(EXCEL_PATH)) {
+    return res
+      .status(404)
+      .json({ success: false, message: "No Excel file found yet" });
+  }
+  res.download(EXCEL_PATH, "students.xlsx");
+};
+
+module.exports = {
+  getAllUsers,
+  getUserById,
+  markCompleted,
+  sendCertificate,
+  generateCard,
+  exportExcel,
+};

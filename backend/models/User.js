@@ -1,50 +1,60 @@
 const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
+const bcrypt   = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
 
 const userSchema = new mongoose.Schema(
   {
-    fullName:        { type: String, required: [true, 'الاسم الكامل مطلوب'], trim: true },
-    email:           { type: String, required: [true, 'البريد الإلكتروني مطلوب'], unique: true, lowercase: true, trim: true },
-    password:        { type: String, required: [true, 'كلمة المرور مطلوبة'], minlength: 6, select: false },
-    phone:           { type: String, required: [true, 'رقم الهاتف مطلوب'], trim: true },
-    address:         { type: String, trim: true },
-    nationalId:      { type: String, trim: true },
-    governorate:     { type: String, trim: true },
-    gender:          { type: String, enum: ['male', 'female'] },
-    education:       { type: String, trim: true },
-    job:             { type: String, trim: true },
+    // ── Names ────────────────────────────────────────────────
+    fullNameAr: { type: String, trim: true },
+    fullNameEn: { type: String, trim: true },
+    // Keep fullName as alias for backward compat
+    fullName:    { type: String, trim: true },
 
-    // ── نوع الإعاقة السمعية ──────────────────────────────────
-    hearingType: {
-      type: String,
-      enum: ['deaf', 'hearing', 'interpreter', ''],
-      default: '',
-    },
+    // ── Auth ─────────────────────────────────────────────────
+    email:       { type: String, required: true, unique: true, lowercase: true, trim: true },
+    password:    { type: String, required: true, minlength: 6, select: false },
+    phone:       { type: String, required: true, trim: true },
 
-    // ── Course Info ──────────────────────────────────────────
+    // ── Profile Image ─────────────────────────────────────────
+    profileImage: { type: String, default: '' }, // path to uploaded file
+
+    // ── Personal ─────────────────────────────────────────────
+    address:     { type: String, trim: true },
+    nationalId:  { type: String, trim: true },
+    governorate: { type: String, trim: true },
+    gender:      { type: String, enum: ['male', 'female', ''] },
+    hearingType: { type: String, enum: ['deaf', 'hearing', 'interpreter', ''], default: '' },
+
+    // ── Education & Career ───────────────────────────────────
+    education:   { type: String, trim: true },
+    job:         { type: String, trim: true },
+
+    // ── Course ───────────────────────────────────────────────
     courseName:      { type: String, trim: true },
     experienceLevel: { type: String, enum: ['beginner', 'intermediate', 'advanced'], default: 'beginner' },
-    goal:            { type: String, enum: ['job', 'skill', 'career'] },
-
-    // ── System Fields ────────────────────────────────────────
-    studentCode:     { type: String, unique: true },
-    role:            { type: String, enum: ['user', 'admin'], default: 'user' },
-    isCompleted:     { type: Boolean, default: false },
+    goal:            { type: String, enum: ['job', 'skill', 'career', ''] },
 
     // ── Course History ───────────────────────────────────────
-    courseHistory: [
-      {
-        courseName:  { type: String },
-        completedAt: { type: Date },
-        certId:      { type: mongoose.Schema.Types.ObjectId, ref: 'Certificate' },
-      }
-    ],
+    courseHistory: [{
+      courseName:  String,
+      completedAt: Date,
+      certId:      { type: mongoose.Schema.Types.ObjectId, ref: 'Certificate' },
+    }],
+
+    // ── System ───────────────────────────────────────────────
+    studentCode: { type: String, unique: true },
+    role:        { type: String, enum: ['user', 'admin'], default: 'user' },
+    isCompleted: { type: Boolean, default: false },
+    cardUrl:     { type: String, default: '' }, // ← أضيف ده
   },
   { timestamps: true }
 );
 
 userSchema.pre('save', async function (next) {
+  // Sync fullName with fullNameEn for backward compatibility
+  if (this.fullNameEn) this.fullName = this.fullNameEn;
+  else if (this.fullNameAr) this.fullName = this.fullNameAr;
+
   if (!this.studentCode) {
     this.studentCode = `EVC-${uuidv4().split('-')[0].toUpperCase()}`;
   }

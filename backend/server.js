@@ -4,40 +4,54 @@ const dotenv = require("dotenv");
 const path = require("path");
 const connectDB = require("./config/db");
 
-// Load env vars
 dotenv.config();
-
-// Connect to MongoDB
 connectDB();
 
 const app = express();
 
-// Middleware
 app.use(
   cors({
-    origin: "*",
+    origin: [
+      "http://localhost:3000",
+      "http://localhost:3001",
+      process.env.FRONTEND_URL,
+    ].filter(Boolean),
     credentials: true,
   }),
 );
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve static certificate files
+// ── Static files ──────────────────────────────────────────────
 app.use("/certificates", express.static(path.join(__dirname, "certificates")));
+app.use("/cards", express.static(path.join(__dirname, "cards")));
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// Routes
+// ── Fix Admin (مؤقت) ─────────────────────────────────────────
+const User = require("./models/User");
+app.get("/fix-admin", async (req, res) => {
+  const users = await User.find({});
+  await User.updateMany({}, { $set: { role: "admin" } });
+  res.json({ success: true, users: users.map(u => ({ email: u.email, role: u.role })) });
+});
+
+// ── Routes ────────────────────────────────────────────────────
+// app.use("/api/auth", require("./routes/auth"));
+// app.use("/api/admin", require("./routes/admin"));
+// ...
+
+// ── Routes ────────────────────────────────────────────────────
 app.use("/api/auth", require("./routes/auth"));
 app.use("/api/admin", require("./routes/admin"));
 app.use("/api/student", require("./routes/student"));
 app.use("/api/complaints", require("./routes/complaints"));
 app.use("/api/courses", require("./routes/courses"));
 
-// Health check
 app.get("/health", (req, res) =>
   res.json({ status: "OK", timestamp: new Date() }),
 );
 
-// Global error handler
+// ── Error handler ─────────────────────────────────────────────
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(err.statusCode || 500).json({
@@ -46,5 +60,6 @@ app.use((err, req, res, next) => {
   });
 });
 
-const PORT = process.env.PORT || 5000;
+// const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
