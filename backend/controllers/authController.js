@@ -39,8 +39,16 @@ const register = async (req, res) => {
 
     // Profile image required
     // بعد ✅
-    const profileImage = req.file
-      ? `/uploads/profiles/${req.file.filename}`
+    const profileImage = req.files?.profileImage?.[0]
+      ? `/uploads/profiles/${req.files.profileImage[0].filename}`
+      : null;
+
+    const idFront = req.files?.idFront?.[0]
+      ? `/uploads/ids/${req.files.idFront[0].filename}`
+      : null;
+
+    const idBack = req.files?.idBack?.[0]
+      ? `/uploads/ids/${req.files.idBack[0].filename}`
       : null;
 
     const existing = await User.findOne({ email });
@@ -49,7 +57,6 @@ const register = async (req, res) => {
         .status(409)
         .json({ success: false, message: "البريد الإلكتروني مسجل مسبقاً" });
     }
-
 
     const user = await User.create({
       fullNameAr,
@@ -69,6 +76,9 @@ const register = async (req, res) => {
       courseName,
       experienceLevel,
       goal,
+      profileImage,
+      idFront:  idFront  || '',
+      idBack:   idBack   || '',
     });
 
     // Save to Excel (background)

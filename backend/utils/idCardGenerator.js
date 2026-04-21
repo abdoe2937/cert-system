@@ -10,30 +10,18 @@ const ensureDir = (dir) => {
 const W = 1619;
 const H = 971;
 
-const generateIDCard = async ({ user }) => {
+const generateIDCard = async ({ user, overrides = {} }) => {
   const doc = await PDFDocument.create();
   doc.registerFontkit(fontkit);
 
-  const templatePath = path.join(
-    __dirname,
-    "..",
-    "assets",
-    "card-template.png",
-  );
+  const templatePath = path.join(__dirname, "..", "assets", "card-template.png");
   const templateBytes = fs.readFileSync(templatePath);
   const templateImg = await doc.embedPng(templateBytes);
 
   const page = doc.addPage([W, H]);
   page.drawImage(templateImg, { x: 0, y: 0, width: W, height: H });
 
-  // ── فونت ────────────────────────────────────────────────────
-  const fontPath = path.join(
-    __dirname,
-    "..",
-    "assets",
-    "fonts",
-    "Cairo-Bold.ttf",
-  );
+  const fontPath = path.join(__dirname, "..", "assets", "fonts", "Cairo-Bold.ttf");
   let font;
   try {
     font = await doc.embedFont(fs.readFileSync(fontPath));
@@ -44,81 +32,58 @@ const generateIDCard = async ({ user }) => {
   const navy = rgb(0.06, 0.13, 0.27);
   const textSize = 26;
 
-  // ── VOLUNTEER NAME ─────────────────────────────────────────────
-  const name = user.fullNameEn || user.fullName || "";
+  // ── البيانات — overrides بتغلب على user ──────────────────────
+  const name         = overrides.fullNameEn   || user.fullNameEn  || user.fullName || "";
+  const studentCode  = overrides.studentCode  || user.studentCode || "";
+  const nationalId   = overrides.nationalId   || user.nationalId  || "";
+  const enrollmentDate = overrides.enrollmentDate
+    || (user.createdAt ? new Date(user.createdAt).toLocaleDateString("en-GB") : "");
+
+  const status = user.hearingType === "deaf"
+    ? "Deaf"
+    : user.hearingType === "interpreter"
+      ? "Sign Lang. Interpreter"
+      : "Hearing";
+
+  // ── STUDENT NAME ─────────────────────────────────────────────
   page.drawText(name, {
-    x: 900, // ← كان 841، راح يمين
-    y: 590, // ← كان 644، نزل تحت
-    size: textSize,
-    font,
-    color: navy,
+    x: 900, y: 590, size: textSize, font, color: navy,
   });
 
   // ── STATUS ───────────────────────────────────────────────────
-  const status =
-    user.hearingType === "deaf"
-      ? "Deaf"
-      : user.hearingType === "interpreter"
-        ? "Sign Lang. Interpreter"
-        : "Hearing";
   page.drawText(status, {
-    x: 900, // ← موحد
-    y: 527, // ← نزل تحت
-    size: textSize,
-    font,
-    color: navy,
+    x: 900, y: 527, size: textSize, font, color: navy,
   });
 
-  // ── EMAIL ────────────────────────────────────────────────────
-  page.drawText(user.nationalId|| "", {
-    x: 900, // ← كان 898، راح شمال
-    y: 464, // ← نزل تحت
-    size: textSize,
-    font,
-    color: navy,
+  // ── NATIONAL ID ──────────────────────────────────────────────
+  page.drawText(nationalId, {
+    x: 900, y: 464, size: textSize, font, color: navy,
   });
 
   // ── CODE ─────────────────────────────────────────────────────
-  page.drawText(user.studentCode || "", {
-    x: 900, // ← موحد
-    y: 400, // ← نزل تحت
-    size: textSize,
-    font,
-    color: navy,
+  page.drawText(studentCode, {
+    x: 900, y: 400, size: textSize, font, color: navy,
   });
 
   // ── ENROLLMENT DATE ──────────────────────────────────────────
-  const joinDate = user.createdAt
-    ? new Date(user.createdAt).toLocaleDateString("en-GB")
-    : "";
-  page.drawText(joinDate, {
-    x: 900, // ← موحد
-    y: 337, // ← نزل تحت
-    size: textSize,
-    font,
-    color: navy,
+  page.drawText(enrollmentDate, {
+    x: 900, y: 337, size: textSize, font, color: navy,
   });
 
   // ── صورة البروفايل ───────────────────────────────────────────
   if (user.profileImage) {
-    const imgPath = path.join(
-      __dirname,
-      "..",
-      user.profileImage.replace(/^\//, ""),
-    );
+    const imgPath = path.join(__dirname, "..", user.profileImage.replace(/^\//, ""));
     if (fs.existsSync(imgPath)) {
       try {
         const imgBytes = fs.readFileSync(imgPath);
         const ext = path.extname(imgPath).toLowerCase();
-        const img =
-          ext === ".png"
-            ? await doc.embedPng(imgBytes)
-            : await doc.embedJpg(imgBytes);
-
+        const img = ext === ".png"
+          ? await doc.embedPng(imgBytes)
+          : await doc.embedJpg(imgBytes);
         const boxW = 220;
         const boxH = 280;
         page.drawImage(img, {
-          x: 1378 - boxW / 2, // توسيط على النقطة الـ cyan
+          x: 1378 - boxW / 2,
           y: 518 - boxH / 2,
           width: boxW,
           height: boxH,
@@ -133,7 +98,7 @@ const generateIDCard = async ({ user }) => {
   const pdfBytes = await doc.save();
   const cardDir = path.join(__dirname, "..", "cards");
   ensureDir(cardDir);
-  const filename = `card_${user.studentCode}_${Date.now()}.pdf`;
+  const filename = `card_${studentCode}_${Date.now()}.pdf`;
   fs.writeFileSync(path.join(cardDir, filename), pdfBytes);
 
   return `/cards/${filename}`;

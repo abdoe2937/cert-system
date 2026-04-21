@@ -109,7 +109,7 @@ const generateCertificatePDF = async ({
         const size = W * 0.09;
         page.drawImage(img, {
           x: W * 0.8424 - size / 2, // توسيط أفقي
-          y: H * 0.2393 - size / 2,
+          y: H * 0.2400 - size / 2,
           width: size,
           height: size,
         });

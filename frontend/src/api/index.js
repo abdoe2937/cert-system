@@ -35,7 +35,7 @@ export const getAllUsers      = ()          => API.get('/api/admin/users');
 export const getUserById      = (id)        => API.get(`/api/admin/users/${id}`);
 export const markCompleted    = (id)        => API.patch(`/api/admin/complete/${id}`);
 export const sendCertificate  = (id, data) => API.post(`/api/admin/send-certificate/${id}`, data);
-export const generateCard     = (id)        => API.post(`/api/admin/generate-card/${id}`);
+export const generateCard = (id, data = {}) => API.post(`/api/admin/generate-card/${id}`, data);
 
 // Student
 export const getMyCertificates = () => API.get('/api/student/certificates');

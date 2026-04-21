@@ -21,9 +21,7 @@ const getUserById = async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
     if (!user)
-      return res
-        .status(404)
-        .json({ success: false, message: "المستخدم غير موجود" });
+      return res.status(404).json({ success: false, message: "المستخدم غير موجود" });
     const certificates = await Certificate.find({ userId: user._id });
     res.json({ success: true, user, certificates });
   } catch (error) {
@@ -37,12 +35,10 @@ const markCompleted = async (req, res) => {
     const user = await User.findByIdAndUpdate(
       req.params.id,
       { isCompleted: true },
-      { new: true },
+      { new: true }
     );
     if (!user)
-      return res
-        .status(404)
-        .json({ success: false, message: "المستخدم غير موجود" });
+      return res.status(404).json({ success: false, message: "المستخدم غير موجود" });
     res.json({ success: true, message: "تم تحديد الطالب كمكتمل", user });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -54,9 +50,7 @@ const sendCertificate = async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
     if (!user)
-      return res
-        .status(404)
-        .json({ success: false, message: "المستخدم غير موجود" });
+      return res.status(404).json({ success: false, message: "المستخدم غير موجود" });
 
     const courseName =
       req.body.courseName || user.courseName || "Volunteering Program";
@@ -79,9 +73,7 @@ const sendCertificate = async (req, res) => {
 
     await User.findByIdAndUpdate(user._id, { isCompleted: true });
 
-    res
-      .status(201)
-      .json({ success: true, message: "تم إرسال الشهادة بنجاح", certificate });
+    res.status(201).json({ success: true, message: "تم إرسال الشهادة بنجاح", certificate });
   } catch (error) {
     console.error("Send certificate error:", error);
     res.status(500).json({ success: false, message: error.message });
@@ -93,13 +85,17 @@ const generateCard = async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
     if (!user)
-      return res
-        .status(404)
-        .json({ success: false, message: "المستخدم غير موجود" });
+      return res.status(404).json({ success: false, message: "المستخدم غير موجود" });
 
-    const cardUrl = await generateIDCard({ user });
+    const overrides = req.body && Object.keys(req.body).length > 0 ? req.body : null;
 
-    // احفظ الـ URL في الـ User
+    // ✅ لو مفيش تعديلات وعنده cardUrl محفوظ → ابعته مباشرة بدون ما يولد جديد
+    if (!overrides && user.cardUrl) {
+      return res.json({ success: true, message: "تم إنشاء الكارنيه", cardUrl: user.cardUrl });
+    }
+
+    // ✅ لو في تعديلات أو مفيش cardUrl → ولّد جديد واحفظه
+    const cardUrl = await generateIDCard({ user, overrides: overrides || {} });
     await User.findByIdAndUpdate(user._id, { cardUrl });
 
     res.json({ success: true, message: "تم إنشاء الكارنيه", cardUrl });
@@ -111,9 +107,7 @@ const generateCard = async (req, res) => {
 
 const exportExcel = (req, res) => {
   if (!fs.existsSync(EXCEL_PATH)) {
-    return res
-      .status(404)
-      .json({ success: false, message: "No Excel file found yet" });
+    return res.status(404).json({ success: false, message: "No Excel file found yet" });
   }
   res.download(EXCEL_PATH, "students.xlsx");
 };
