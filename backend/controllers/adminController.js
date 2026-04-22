@@ -87,18 +87,13 @@ const generateCard = async (req, res) => {
     if (!user)
       return res.status(404).json({ success: false, message: "المستخدم غير موجود" });
 
-    const overrides = req.body && Object.keys(req.body).length > 0 ? req.body : null;
+    const overrides = req.body && Object.keys(req.body).length > 0 ? req.body : {};
 
-    // ✅ لو مفيش تعديلات وعنده cardUrl محفوظ → ابعته مباشرة بدون ما يولد جديد
-    if (!overrides && user.cardUrl) {
-      return res.json({ success: true, message: "تم إنشاء الكارنيه", cardUrl: user.cardUrl });
-    }
+    const pdfBytes = await generateIDCard({ user, overrides });
 
-    // ✅ لو في تعديلات أو مفيش cardUrl → ولّد جديد واحفظه
-    const cardUrl = await generateIDCard({ user, overrides: overrides || {} });
-    await User.findByIdAndUpdate(user._id, { cardUrl });
-
-    res.json({ success: true, message: "تم إنشاء الكارنيه", cardUrl });
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `inline; filename="card_${user.studentCode}.pdf"`);
+    res.send(Buffer.from(pdfBytes));
   } catch (error) {
     console.error("Generate card error:", error);
     res.status(500).json({ success: false, message: error.message });

@@ -100,12 +100,7 @@ const generateIDCard = async ({ user, overrides = {} }) => {
 
   // ── حفظ ──────────────────────────────────────────────────────
   const pdfBytes = await doc.save();
-  const cardDir = path.join(__dirname, "..", "cards");
-  ensureDir(cardDir);
-  const filename = `card_${studentCode}_${Date.now()}.pdf`;
-  fs.writeFileSync(path.join(cardDir, filename), pdfBytes);
-
-  return `/cards/${filename}`;
+  return pdfBytes;
 };
 
 module.exports = { generateIDCard };
