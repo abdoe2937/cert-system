@@ -10,6 +10,10 @@ const ensureDir = (dir) => {
 const W = 1619;
 const H = 971;
 
+// نسب التحويل من أبعاد الصورة للـ PDF
+const scaleX = (x) => x * W / 1393;
+const scaleY = (y) => H - (y * H / 878);
+
 const generateIDCard = async ({ user, overrides = {} }) => {
   const doc = await PDFDocument.create();
   doc.registerFontkit(fontkit);
@@ -32,10 +36,9 @@ const generateIDCard = async ({ user, overrides = {} }) => {
   const navy = rgb(0.06, 0.13, 0.27);
   const textSize = 26;
 
-  // ── البيانات — overrides بتغلب على user ──────────────────────
-  const name         = overrides.fullNameEn   || user.fullNameEn  || user.fullName || "";
-  const studentCode  = overrides.studentCode  || user.studentCode || "";
-  const nationalId   = overrides.nationalId   || user.nationalId  || "";
+  const name           = overrides.fullNameEn     || user.fullNameEn  || user.fullName || "";
+  const studentCode    = overrides.studentCode    || user.studentCode || "";
+  const nationalId     = overrides.nationalId     || user.nationalId  || "";
   const enrollmentDate = overrides.enrollmentDate
     || (user.createdAt ? new Date(user.createdAt).toLocaleDateString("en-GB") : "");
 
@@ -45,29 +48,30 @@ const generateIDCard = async ({ user, overrides = {} }) => {
       ? "Sign Lang. Interpreter"
       : "Hearing";
 
-  // ── STUDENT NAME ─────────────────────────────────────────────
+  // ── البيانات ─────────────────────────────────────────────────
   page.drawText(name, {
-    x: 900, y: 590, size: textSize, font, color: navy,
+    x: scaleX(550), y: scaleY(523),
+    size: textSize, font, color: navy,
   });
 
-  // ── STATUS ───────────────────────────────────────────────────
   page.drawText(status, {
-    x: 900, y: 527, size: textSize, font, color: navy,
+    x: scaleX(550), y: scaleY(573),
+    size: textSize, font, color: navy,
   });
 
-  // ── NATIONAL ID ──────────────────────────────────────────────
   page.drawText(nationalId, {
-    x: 900, y: 464, size: textSize, font, color: navy,
+    x: scaleX(550), y: scaleY(624),
+    size: textSize, font, color: navy,
   });
 
-  // ── CODE ─────────────────────────────────────────────────────
   page.drawText(studentCode, {
-    x: 900, y: 400, size: textSize, font, color: navy,
+    x: scaleX(550), y: scaleY(676),
+    size: textSize, font, color: navy,
   });
 
-  // ── ENROLLMENT DATE ──────────────────────────────────────────
   page.drawText(enrollmentDate, {
-    x: 900, y: 337, size: textSize, font, color: navy,
+    x: scaleX(550), y: scaleY(727),
+    size: textSize, font, color: navy,
   });
 
   // ── صورة البروفايل ───────────────────────────────────────────
@@ -83,8 +87,8 @@ const generateIDCard = async ({ user, overrides = {} }) => {
         const boxW = 220;
         const boxH = 280;
         page.drawImage(img, {
-          x: 1378 - boxW / 2,
-          y: 518 - boxH / 2,
+          x: scaleX(1130) - boxW / 2,
+          y: scaleY(510) - boxH / 2,
           width: boxW,
           height: boxH,
         });

@@ -50,7 +50,7 @@ export default function LoginPage() {
     try {
       const { data } = await loginUser(form);
       login(data.token, data.user);
-      toast.success(`Welcome back, ${data.user.name}!`);
+      toast.success(`Welcome back, ${data.user.fullName || data.user.name}!`);  
       navigate(data.user.role === "admin" ? "/admin" : "/dashboard");
     } catch (err) {
       toast.error(err.response?.data?.message || "Login failed");

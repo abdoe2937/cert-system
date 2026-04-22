@@ -6,7 +6,7 @@ const API = axios.create({
 });
 
 API.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
+  const token = sessionStorage.getItem('token');
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
@@ -15,8 +15,8 @@ API.interceptors.response.use(
   (res) => res,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      sessionStorage.removeItem('token');
+      sessionStorage.removeItem('user');
       window.location.href = '/login';
     }
     return Promise.reject(error);
@@ -35,7 +35,7 @@ export const getAllUsers      = ()          => API.get('/api/admin/users');
 export const getUserById      = (id)        => API.get(`/api/admin/users/${id}`);
 export const markCompleted    = (id)        => API.patch(`/api/admin/complete/${id}`);
 export const sendCertificate  = (id, data) => API.post(`/api/admin/send-certificate/${id}`, data);
-export const generateCard = (id, data = {}) => API.post(`/api/admin/generate-card/${id}`, data);
+export const generateCard     = (id, data = {}) => API.post(`/api/admin/generate-card/${id}`, data);
 
 // Student
 export const getMyCertificates = () => API.get('/api/student/certificates');

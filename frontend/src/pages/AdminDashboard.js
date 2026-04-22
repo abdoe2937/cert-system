@@ -394,11 +394,8 @@ export default function AdminDashboard() {
 
   // ── أول تحميل + Auto-refresh كل 30 ثانية ──────────────────
   useEffect(() => {
-    fetchUsers(false); // أول مرة → loading screen
-    const interval = setInterval(() => fetchUsers(true), 30000); // كل 30 ثانية → silent
-    return () => clearInterval(interval);
+    fetchUsers(false);
   }, [fetchUsers]);
-
   const handleMarkCompleted = async (user) => {
     if (user.isCompleted) return;
     setCompleting(user._id);

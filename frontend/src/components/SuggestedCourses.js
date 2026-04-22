@@ -9,7 +9,7 @@ export default function SuggestedCourses() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     axios.get(`${API_URL}/api/courses/suggested`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -28,24 +28,18 @@ export default function SuggestedCourses() {
 
   return (
     <div className="mt-8 animate-slide-up">
-      {/* Header */}
       <div className="flex items-center gap-3 mb-4">
         <div className="flex-1 h-px bg-gradient-to-r from-gold-500/40 to-transparent" />
         <div className="flex items-center gap-2">
           <span className="text-gold-400 text-sm">✦</span>
-          <h2 className="font-display text-lg font-semibold text-white">
-            Suggested for You
-          </h2>
+          <h2 className="font-display text-lg font-semibold text-white">Suggested for You</h2>
           <span className="text-gold-400 text-sm">✦</span>
         </div>
         <div className="flex-1 h-px bg-gradient-to-l from-gold-500/40 to-transparent" />
       </div>
-
       <p className="text-slate-500 text-sm font-body text-center mb-5">
         Courses recommended based on your profile and goals
       </p>
-
-      {/* Course Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {courses.map((course, i) => (
           <div
@@ -53,31 +47,20 @@ export default function SuggestedCourses() {
             className="card p-5 flex flex-col gap-3 hover:border-gold-500/30 transition-all group"
             style={{ animationDelay: `${i * 0.08}s` }}
           >
-            {/* Icon + Title */}
             <div className="flex items-start gap-3">
               <div className="w-12 h-12 bg-gold-500/15 border border-gold-500/25 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0 group-hover:bg-gold-500/20 transition-colors">
                 {course.thumbnail}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-white font-semibold font-body text-sm leading-tight">
-                  {course.title}
-                </p>
+                <p className="text-white font-semibold font-body text-sm leading-tight">{course.title}</p>
                 {course.instructor && (
-                  <p className="text-gold-400/70 text-xs font-body mt-0.5">
-                    {course.instructor}
-                  </p>
+                  <p className="text-gold-400/70 text-xs font-body mt-0.5">{course.instructor}</p>
                 )}
               </div>
             </div>
-
-            {/* Description */}
             {course.description && (
-              <p className="text-slate-400 text-xs font-body line-clamp-2 leading-relaxed">
-                {course.description}
-              </p>
+              <p className="text-slate-400 text-xs font-body line-clamp-2 leading-relaxed">{course.description}</p>
             )}
-
-            {/* Duration */}
             {course.duration && (
               <div className="flex items-center gap-1.5 text-xs text-slate-500 font-body">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -86,9 +69,6 @@ export default function SuggestedCourses() {
                 {course.duration}
               </div>
             )}
-
-            {/* CTA Button */}
-            
           </div>
         ))}
       </div>
