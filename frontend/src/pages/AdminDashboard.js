@@ -164,8 +164,18 @@ const CardModal = ({ user, cardUrl: initialCardUrl, onClose }) => {
   const handleRegenerate = async () => {
     setRegenerating(true);
     try {
-      const { data } = await generateCard(user._id, editData);
-      setCardUrl(data.cardUrl);
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/api/admin/generate-card/${user._id}`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(editData),
+      });
+      const blob = await res.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      setCardUrl(blobUrl);
       setMode("preview");
       toast.success("✅ تم تحديث الكارنيه");
     } catch {
