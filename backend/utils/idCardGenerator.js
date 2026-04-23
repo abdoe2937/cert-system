@@ -6,35 +6,35 @@ const path = require("path");
 const W = 1619;
 const H = 971;
 
-const scaleX = (x) => x * W / 1393;
-const scaleY = (y) => H - (y * H / 878);
+const scaleX = (x) => (x * W) / 1393;
+const scaleY = (y) => H - (y * H) / 878;
 
 // Try to load image from local path or from Cloudinary URL
 const loadImage = async (doc, imagePath) => {
   if (!imagePath) return null;
-  
+
   // Check if it's a Cloudinary URL
   if (imagePath.startsWith("http")) {
     try {
       const response = await fetch(imagePath);
       const arrayBuffer = await response.arrayBuffer();
       const ext = imagePath.toLowerCase().includes(".png") ? ".png" : ".jpg";
-      return ext === ".png" 
-        ? await doc.embedPng(arrayBuffer) 
+      return ext === ".png"
+        ? await doc.embedPng(arrayBuffer)
         : await doc.embedJpg(arrayBuffer);
     } catch (e) {
       console.error("Failed to load Cloudinary image:", e.message);
       return null;
     }
   }
-  
+
   // Local file
   const fullPath = path.join(__dirname, "..", imagePath.replace(/^\//, ""));
   if (!fs.existsSync(fullPath)) {
     console.log("Image not found:", fullPath);
     return null;
   }
-  
+
   const ext = path.extname(fullPath).toLowerCase();
   const bytes = fs.readFileSync(fullPath);
   return ext === ".png" ? await doc.embedPng(bytes) : await doc.embedJpg(bytes);
@@ -44,7 +44,12 @@ const generateIDCard = async ({ user, overrides = {} }) => {
   const doc = await PDFDocument.create();
   doc.registerFontkit(fontkit);
 
-  const templatePath = path.join(__dirname, "..", "assets", "card-template.png");
+  const templatePath = path.join(
+    __dirname,
+    "..",
+    "assets",
+    "card-template.png",
+  );
   if (!fs.existsSync(templatePath)) {
     console.error("Card template not found:", templatePath);
     throw new Error("Card template not found. Please contact admin.");
@@ -56,7 +61,13 @@ const generateIDCard = async ({ user, overrides = {} }) => {
   page.drawImage(templateImg, { x: 0, y: 0, width: W, height: H });
 
   let font;
-  const fontPath = path.join(__dirname, "..", "assets", "fonts", "Cairo-Bold.ttf");
+  const fontPath = path.join(
+    __dirname,
+    "..",
+    "assets",
+    "fonts",
+    "Cairo-Bold.ttf",
+  );
   try {
     if (fs.existsSync(fontPath)) {
       font = await doc.embedFont(fs.readFileSync(fontPath));
@@ -73,20 +84,54 @@ const generateIDCard = async ({ user, overrides = {} }) => {
   const name = overrides.fullNameEn || user.fullNameEn || user.fullName || "";
   const studentCode = overrides.studentCode || user.studentCode || "";
   const nationalId = overrides.nationalId || user.nationalId || "";
-  const enrollmentDate = overrides.enrollmentDate
-    || (user.createdAt ? new Date(user.createdAt).toLocaleDateString("en-GB") : "");
+  const enrollmentDate =
+    overrides.enrollmentDate ||
+    (user.createdAt
+      ? new Date(user.createdAt).toLocaleDateString("en-GB")
+      : "");
 
-  const status = user.hearingType === "deaf"
-    ? "Deaf"
-    : user.hearingType === "interpreter"
-      ? "Sign Lang. Interpreter"
-      : "Hearing";
+  const status =
+    user.hearingType === "deaf"
+      ? "Deaf"
+      : user.hearingType === "interpreter"
+        ? "Sign Lang. Interpreter"
+        : "Hearing";
 
-  page.drawText(name, { x: scaleX(1130) - font.widthOfTextAtSize(name, textSize) / 2 + 20, y: scaleY(560), size: textSize, font, color: navy });
-  page.drawText(studentCode, { x: scaleX(1130) - font.widthOfTextAtSize(studentCode, 22) / 2 + 20, y: scaleY(500), size: 22, font, color: navy });
-  page.drawText(nationalId, { x: scaleX(1130) - font.widthOfTextAtSize(nationalId, 18) / 2 + 20, y: scaleY(448), size: 18, font, color: navy });
-  page.drawText(enrollmentDate, { x: scaleX(1130) - font.widthOfTextAtSize(enrollmentDate, 18) / 2 + 20, y: scaleY(408), size: 18, font, color: navy });
-  page.drawText(status, { x: scaleX(1040), y: scaleY(248), size: 18, font, color: navy });
+  page.drawText(name, {
+    x: scaleX(550),
+    y: scaleY(523),
+    size: textSize,
+    font,
+    color: navy,
+  });
+  page.drawText(studentCode, {
+    x: scaleX(550),
+    y: scaleY(573),
+    size: 22,
+    font,
+    color: navy,
+  });
+  page.drawText(nationalId, {
+    x: scaleX(550),
+    y: scaleY(624),
+    size: 18,
+    font,
+    color: navy,
+  });
+  page.drawText(enrollmentDate, {
+    x: scaleX(550),
+    y: scaleY(676),
+    size: 18,
+    font,
+    color: navy,
+  });
+  page.drawText(status, {
+    x: scaleX(550),
+    y: scaleY(727),
+    size: 18,
+    font,
+    color: navy,
+  });
 
   // Profile image - works with both local and Cloudinary
   if (user.profileImage) {
