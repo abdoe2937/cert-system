@@ -19,6 +19,10 @@ const generateIDCard = async ({ user, overrides = {} }) => {
   doc.registerFontkit(fontkit);
 
   const templatePath = path.join(__dirname, "..", "assets", "card-template.png");
+  if (!fs.existsSync(templatePath)) {
+    console.error("Card template not found:", templatePath);
+    throw new Error("Card template not found. Please contact admin.");
+  }
   const templateBytes = fs.readFileSync(templatePath);
   const templateImg = await doc.embedPng(templateBytes);
 
@@ -28,8 +32,12 @@ const generateIDCard = async ({ user, overrides = {} }) => {
   const fontPath = path.join(__dirname, "..", "assets", "fonts", "Cairo-Bold.ttf");
   let font;
   try {
+    if (!fs.existsSync(fontPath)) {
+      throw new Error("Font not found: " + fontPath);
+    }
     font = await doc.embedFont(fs.readFileSync(fontPath));
-  } catch {
+  } catch (e) {
+    console.warn("Using default font:", e.message);
     font = await doc.embedFont(StandardFonts.HelveticaBold);
   }
 
