@@ -118,13 +118,6 @@ const generateIDCard = async ({ user, overrides = {} }) => {
     font,
     color: navy,
   });
-  page.drawText(enrollmentDate, {
-    x: scaleX(550),
-    y: scaleY(676),
-    size: 18,
-    font,
-    color: navy,
-  });
   page.drawText(status, {
     x: scaleX(550),
     y: scaleY(727),
@@ -132,6 +125,14 @@ const generateIDCard = async ({ user, overrides = {} }) => {
     font,
     color: navy,
   });
+  page.drawText(enrollmentDate, {
+    x: scaleX(550),
+    y: scaleY(676),
+    size: 18,
+    font,
+    color: navy,
+  });
+  
 
   // Profile image - works with both local and Cloudinary
   if (user.profileImage) {
