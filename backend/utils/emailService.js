@@ -2,14 +2,12 @@ const nodemailer = require("nodemailer");
 const cloudinary = require("cloudinary").v2;
 const { PassThrough } = require("stream");
 
-// Configure Cloudinary
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// Create reusable transporter
 const createTransporter = () => {
   return nodemailer.createTransport({
     host: process.env.SMTP_HOST || "smtp.gmail.com",
@@ -22,7 +20,6 @@ const createTransporter = () => {
   });
 };
 
-// Upload PDF Buffer to Cloudinary
 const uploadPDFToCloudinary = async (pdfBuffer, fileName) => {
   return new Promise((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
@@ -44,14 +41,12 @@ const uploadPDFToCloudinary = async (pdfBuffer, fileName) => {
   });
 };
 
-// Send certificate email with PDF attachment (no file saved!)
-const sendCertificateEmail = async ({
-  to,
-  studentName,
-  courseName,
-  pdfBuffer,
-  studentCode,
-}) => {
+const sendCertificateEmail = async ({ to, studentName, courseName, pdfBuffer, studentCode }) => {
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    console.warn("Email not configured - skipping");
+    return { skipped: true };
+  }
+
   const transporter = createTransporter();
 
   const mailOptions = {
@@ -83,60 +78,4 @@ const sendCertificateEmail = async ({
   return transporter.sendMail(mailOptions);
 };
 
-// Generate and send in one function
-const generateAndSendCertificate = async ({
-  email,
-  studentName,
-  studentNameAr,
-  profileImage,
-  courseName,
-  studentCode,
-}) => {
-  const { generateCertificatePDF } = require("./pdfGenerator");
-
-  // Generate PDF (returns Buffer)
-  const pdfBuffer = await generateCertificatePDF({
-    studentName,
-    studentNameAr,
-    profileImage,
-    courseName,
-    studentCode,
-    issuedAt: new Date(),
-  });
-
-  // Upload to Cloudinary (optional - for backup/display)
-  let pdfUrl = "";
-  try {
-    const uploadResult = await uploadPDFToCloudinary(
-      Buffer.from(pdfBuffer),
-      `cert_${studentCode}`
-    );
-    pdfUrl = uploadResult.secure_url;
-  } catch (e) {
-    console.warn("Cloudinary upload failed:", e.message);
-  }
-
-  // Send email with PDF
-  try {
-    await sendCertificateEmail({
-      to: email,
-      studentName,
-      courseName,
-      pdfBuffer,
-      studentCode,
-    });
-    console.log(`Certificate email sent to ${email}`);
-  } catch (e) {
-    console.error("Email send failed:", e.message);
-    throw e;
-  }
-
-  return { pdfBuffer, pdfUrl };
-};
-
-module.exports = {
-  createTransporter,
-  uploadPDFToCloudinary,
-  sendCertificateEmail,
-  generateAndSendCertificate,
-};
+module.exports = { createTransporter, uploadPDFToCloudinary, sendCertificateEmail };
