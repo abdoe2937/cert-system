@@ -66,7 +66,6 @@ const generateCertificatePDF = async ({
     font = await doc.embedFont(StandardFonts.HelveticaBold);
   }
 
-  // ✅ الاسم الإنجليزي فقط - تحت AWARDED TO
   const name = studentName || "";
   page.drawText(name, {
     x: W * 0.5 - font.widthOfTextAtSize(name, 36) / 2,
@@ -76,7 +75,6 @@ const generateCertificatePDF = async ({
     color: darkText,
   });
 
-  // ✅ اسم الكورس - تحت FOR SUCCESSFULLY COMPLETING THE
   const course = courseName || "";
   page.drawText(course, {
     x: W * 0.5 - font.widthOfTextAtSize(course, 26) / 2,
@@ -86,7 +84,6 @@ const generateCertificatePDF = async ({
     color: darkText,
   });
 
-  // ✅ Completion Date
   const dateStr = issuedAt
     ? new Date(issuedAt).toLocaleDateString("en-GB")
     : new Date().toLocaleDateString("en-GB");
@@ -99,7 +96,6 @@ const generateCertificatePDF = async ({
     color: darkText,
   });
 
-  // ✅ Volunteer ID
   page.drawText(studentCode || "", {
     x: W * 0.565,
     y: H * 0.178,
@@ -108,7 +104,6 @@ const generateCertificatePDF = async ({
     color: darkText,
   });
 
-  // ✅ Profile image
   if (profileImage) {
     const img = await loadImage(doc, profileImage);
     if (img) {
@@ -122,18 +117,8 @@ const generateCertificatePDF = async ({
     }
   }
 
-  // ✅ حفظ الملف محلياً (زي ما كان شغال)
-  const pdfBytes = await doc.save();
-  const certsDir = path.join(__dirname, "..", "certificates");
-  if (!fs.existsSync(certsDir)) {
-    fs.mkdirSync(certsDir, { recursive: true });
-  }
-
-  const filename = `cert_${studentCode || Date.now()}.pdf`;
-  const filepath = path.join(certsDir, filename);
-  fs.writeFileSync(filepath, pdfBytes);
-
-  return `/certificates/${filename}`;
+  // ✅ ارجع bytes مباشرة بدون حفظ على الـ disk
+  return await doc.save();
 };
 
 module.exports = { generateCertificatePDF };
