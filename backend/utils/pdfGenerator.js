@@ -8,7 +8,6 @@ const H = 794;
 
 const darkText = rgb(0.12, 0.18, 0.28);
 
-// Try to load image from local path or from Cloudinary URL
 const loadImage = async (doc, imagePath) => {
   if (!imagePath) return null;
   
@@ -53,10 +52,13 @@ const generateCertificatePDF = async ({
     throw new Error("Certificate template not found");
   }
   const templateBytes = fs.readFileSync(templatePath);
-  const templateImg = doc.embedPng(templateBytes);
-  templateImg.scaleTo(W, H);
+  
+  // ✅ إضافة await وحذف scaleTo
+  const templateImg = await doc.embedPng(templateBytes);
 
   const page = doc.addPage([W, H]);
+  
+  // ✅ تحديد الأبعاد مباشرة في drawImage
   page.drawImage(templateImg, { x: 0, y: 0, width: W, height: H });
 
   let font;
@@ -90,8 +92,8 @@ const generateCertificatePDF = async ({
     color: darkText,
   });
 
-  page.drawText(courseName, {
-    x: W * 0.5 - font.widthOfTextAtSize(courseName, 28) / 2,
+  page.drawText(courseName || "", {
+    x: W * 0.5 - font.widthOfTextAtSize(courseName || "", 28) / 2,
     y: H * 0.44,
     size: 28,
     font,
@@ -110,7 +112,6 @@ const generateCertificatePDF = async ({
     color: darkText,
   });
 
-  // Profile image - works with both local and Cloudinary
   if (profileImage) {
     const img = await loadImage(doc, profileImage);
     if (img) {
