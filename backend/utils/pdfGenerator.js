@@ -1,41 +1,3 @@
-const { PDFDocument, StandardFonts, rgb } = require("pdf-lib");
-const fontkit = require("@pdf-lib/fontkit");
-const fs = require("fs");
-const path = require("path");
-
-const W = 1123;
-const H = 794;
-
-const darkText = rgb(0.12, 0.18, 0.28);
-
-const loadImage = async (doc, imagePath) => {
-  if (!imagePath) return null;
-  
-  if (imagePath.startsWith("http")) {
-    try {
-      const response = await fetch(imagePath);
-      const arrayBuffer = await response.arrayBuffer();
-      const ext = imagePath.toLowerCase().includes(".png") ? ".png" : ".jpg";
-      return ext === ".png" 
-        ? await doc.embedPng(arrayBuffer) 
-        : await doc.embedJpg(arrayBuffer);
-    } catch (e) {
-      console.error("Failed to load Cloudinary image:", e.message);
-      return null;
-    }
-  }
-  
-  const fullPath = path.join(__dirname, "..", imagePath.replace(/^\//, ""));
-  if (!fs.existsSync(fullPath)) {
-    console.log("Image not found:", fullPath);
-    return null;
-  }
-  
-  const ext = path.extname(fullPath).toLowerCase();
-  const bytes = fs.readFileSync(fullPath);
-  return ext === ".png" ? await doc.embedPng(bytes) : await doc.embedJpg(bytes);
-};
-
 const generateCertificatePDF = async ({
   studentName,
   studentNameAr,
@@ -52,66 +14,75 @@ const generateCertificatePDF = async ({
     throw new Error("Certificate template not found");
   }
   const templateBytes = fs.readFileSync(templatePath);
-  
-  // ✅ إضافة await وحذف scaleTo
   const templateImg = await doc.embedPng(templateBytes);
 
   const page = doc.addPage([W, H]);
-  
-  // ✅ تحديد الأبعاد مباشرة في drawImage
   page.drawImage(templateImg, { x: 0, y: 0, width: W, height: H });
 
   let font;
   const fontPath = path.join(__dirname, "..", "assets", "fonts", "Cairo-Bold.ttf");
   try {
-    if (fs.existsSync(fontPath)) {
-      font = await doc.embedFont(fs.readFileSync(fontPath));
-    } else {
-      font = await doc.embedFont(StandardFonts.HelveticaBold);
-    }
+    font = fs.existsSync(fontPath)
+      ? await doc.embedFont(fs.readFileSync(fontPath))
+      : await doc.embedFont(StandardFonts.HelveticaBold);
   } catch {
     font = await doc.embedFont(StandardFonts.HelveticaBold);
   }
 
   const name = studentName || "";
   const nameAr = studentNameAr || "";
-
-  page.drawText(name, {
-    x: W * 0.5 - font.widthOfTextAtSize(name, 36) / 2,
-    y: H * 0.58,
-    size: 36,
-    font,
-    color: darkText,
-  });
-
-  page.drawText(nameAr, {
-    x: W * 0.5 - font.widthOfTextAtSize(nameAr, 32) / 2,
-    y: H * 0.52,
-    size: 32,
-    font,
-    color: darkText,
-  });
-
-  page.drawText(courseName || "", {
-    x: W * 0.5 - font.widthOfTextAtSize(courseName || "", 28) / 2,
-    y: H * 0.44,
-    size: 28,
-    font,
-    color: darkText,
-  });
+  const course = courseName || "";
 
   const dateStr = issuedAt
     ? new Date(issuedAt).toLocaleDateString("en-GB")
     : new Date().toLocaleDateString("en-GB");
 
-  page.drawText(dateStr, {
-    x: W * 0.38,
-    y: H * 0.18,
-    size: 18,
+  // ✅ الاسم الإنجليزي - تحت "AWARDED TO"
+  page.drawText(name, {
+    x: W * 0.5 - font.widthOfTextAtSize(name, 36) / 2,
+    y: H * 0.46,   // ← كان 0.58 (مرتفع جداً)
+    size: 36,
     font,
     color: darkText,
   });
 
+  // ✅ الاسم العربي - تحت الاسم الإنجليزي
+  page.drawText(nameAr, {
+    x: W * 0.5 - font.widthOfTextAtSize(nameAr, 32) / 2,
+    y: H * 0.40,   // ← كان 0.52
+    size: 32,
+    font,
+    color: darkText,
+  });
+
+  // ✅ اسم الكورس - تحت "FOR SUCCESSFULLY COMPLETING THE"
+  page.drawText(course, {
+    x: W * 0.5 - font.widthOfTextAtSize(course, 26) / 2,
+    y: H * 0.32,   // ← كان 0.44
+    size: 26,
+    font,
+    color: darkText,
+  });
+
+  // ✅ Completion Date
+  page.drawText(dateStr, {
+    x: W * 0.565,   // بعد "Completion Date:"
+    y: H * 0.215,
+    size: 16,
+    font,
+    color: darkText,
+  });
+
+  // ✅ Volunteer ID
+  page.drawText(studentCode || "", {
+    x: W * 0.565,   // بعد "Volunteer ID:"
+    y: H * 0.178,
+    size: 16,
+    font,
+    color: darkText,
+  });
+
+  // Profile image
   if (profileImage) {
     const img = await loadImage(doc, profileImage);
     if (img) {
@@ -127,15 +98,10 @@ const generateCertificatePDF = async ({
 
   const pdfBytes = await doc.save();
   const certsDir = path.join(__dirname, "..", "certificates");
-  if (!fs.existsSync(certsDir)) {
-    fs.mkdirSync(certsDir, { recursive: true });
-  }
+  if (!fs.existsSync(certsDir)) fs.mkdirSync(certsDir, { recursive: true });
 
   const filename = `cert_${studentCode || Date.now()}.pdf`;
-  const filepath = path.join(certsDir, filename);
-  fs.writeFileSync(filepath, pdfBytes);
+  fs.writeFileSync(path.join(certsDir, filename), pdfBytes);
 
   return `/certificates/${filename}`;
 };
-
-module.exports = { generateCertificatePDF };
