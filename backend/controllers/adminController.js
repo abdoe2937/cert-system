@@ -3,7 +3,6 @@ const User = require("../models/User");
 const Certificate = require("../models/Certificate");
 const { generateCertificatePDF } = require("../utils/pdfGenerator");
 const { generateIDCard } = require("../utils/idCardGenerator");
-const { uploadPDFToCloudinary, sendCertificateEmail } = require("../utils/emailService");
 
 // GET /api/admin/users
 const getAllUsers = async (req, res) => {
@@ -52,26 +51,14 @@ const sendCertificate = async (req, res) => {
 
     const courseName = req.body.courseName || user.courseName || "Volunteering Program";
 
-    // Generate PDF (returns Buffer - no file saved!)
-    const pdfBytes = await generateCertificatePDF({
+    // Generate PDF (saves to disk and returns URL)
+    const pdfUrl = await generateCertificatePDF({
       studentName: user.fullNameEn || user.fullName || user.fullNameAr,
-      studentNameAr: user.fullNameAr,
       profileImage: user.profileImage,
       courseName,
       studentCode: user.studentCode,
       issuedAt: new Date(),
     });
-
-    const pdfBuffer = Buffer.from(pdfBytes);
-
-    // Upload to Cloudinary for backup
-    let pdfUrl = "";
-    try {
-      const uploadResult = await uploadPDFToCloudinary(pdfBuffer, `cert_${user.studentCode}`);
-      pdfUrl = uploadResult.secure_url;
-    } catch (e) {
-      console.warn("Cloudinary upload failed:", e.message);
-    }
 
     // Save certificate record
     const certificate = await Certificate.create({
@@ -81,26 +68,9 @@ const sendCertificate = async (req, res) => {
       issuedAt: new Date(),
     });
 
-    // Send email with PDF attachment
-    try {
-      await sendCertificateEmail({
-        to: user.email,
-        studentName: user.fullNameEn || user.fullName || user.fullNameAr,
-        courseName,
-        pdfBuffer,
-        studentCode: user.studentCode,
-      });
-    } catch (e) {
-      console.warn("Email send failed:", e.message);
-    }
-
     await User.findByIdAndUpdate(user._id, { isCompleted: true });
 
-    // Return as PDF directly
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `inline; filename="cert_${user.studentCode}.pdf"`);
-    res.send(pdfBuffer);
-
+    res.status(201).json({ success: true, message: "تم إرسال الشهادة بنجاح", certificate });
   } catch (error) {
     console.error("Send certificate error:", error);
     res.status(500).json({ success: false, message: error.message });
@@ -127,7 +97,6 @@ const generateCard = async (req, res) => {
   }
 };
 
-// GET /api/admin/export-excel
 const exportExcel = (req, res) => {
   const EXCEL_PATH = require("../utils/excelService").EXCEL_PATH;
   if (!fs.existsSync(EXCEL_PATH)) {

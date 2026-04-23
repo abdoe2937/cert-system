@@ -1,7 +1,6 @@
 const express  = require('express');
 const router   = express.Router();
 const Certificate = require('../models/Certificate');
-const { generateIDCard } = require('../utils/idCardGenerator');
 const { protect } = require('../middleware/auth');
 
 router.use(protect);
