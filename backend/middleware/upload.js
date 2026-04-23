@@ -1,30 +1,26 @@
 const multer = require('multer');
-const path   = require('path');
-const fs     = require('fs');
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
-const profilesDir = path.join(__dirname, '..', 'uploads', 'profiles');
-const idsDir      = path.join(__dirname, '..', 'uploads', 'ids');
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
-if (!fs.existsSync(profilesDir)) fs.mkdirSync(profilesDir, { recursive: true });
-if (!fs.existsSync(idsDir))      fs.mkdirSync(idsDir,      { recursive: true });
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    if (file.fieldname === 'profileImage') cb(null, profilesDir);
-    else                                   cb(null, idsDir);
-  },
-  filename: (req, file, cb) => {
-    const ext  = path.extname(file.originalname).toLowerCase();
-    const name = `${file.fieldname}_${Date.now()}_${Math.round(Math.random() * 1e6)}${ext}`;
-    cb(null, name);
-  },
+const storage = new CloudinaryStorage({
+  cloudinary,
+  params: (req, file) => ({
+    folder: file.fieldname === 'profileImage' ? 'profiles' : 'ids',
+    allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+    transformation: [{ width: 500, height: 500, crop: 'limit' }],
+  }),
 });
 
 const fileFilter = (req, file, cb) => {
-  const allowed = ['.jpg', '.jpeg', '.png', '.webp'];
-  const ext     = path.extname(file.originalname).toLowerCase();
-  if (allowed.includes(ext)) cb(null, true);
-  else cb(new Error('Only image files are allowed (jpg, png, webp)'), false);
+  const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+  if (allowed.includes(file.mimetype)) cb(null, true);
+  else cb(new Error('Only image files are allowed'), false);
 };
 
 const upload = multer({
