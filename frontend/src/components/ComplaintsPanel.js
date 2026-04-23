@@ -29,7 +29,7 @@ const ReplyModal = ({ complaint, onClose, onSuccess }) => {
     if (!reply.trim()) return toast.error('Please enter a reply');
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = sessionStorage.getItem('token');
       await axios.patch(
         `${API_URL}/api/complaints/admin/${complaint._id}/reply`,
         { adminReply: reply, status },
@@ -127,7 +127,7 @@ export default function ComplaintsPanel() {
   const fetchComplaints = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = sessionStorage.getItem('token');
       const { data } = await axios.get(`${API_URL}/api/complaints/admin/all`, {
         headers: { Authorization: `Bearer ${token}` },
       });

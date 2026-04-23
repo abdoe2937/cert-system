@@ -12,6 +12,19 @@ import {
 
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
+// Handle both local uploads and Cloudinary URLs
+const getImageUrl = (path) => {
+  if (!path) return null;
+  // If it's already a full URL (Cloudinary), return as is
+  if (path.startsWith("http")) return path;
+  // Clean the path - remove backslashes, fix path format
+  const cleanPath = path.replace(/\\/g, "/");
+  // Make sure it starts with /
+  const fixedPath = cleanPath.startsWith("/") ? cleanPath : "/" + cleanPath;
+  // Otherwise, prepend API_URL for local uploads
+  return `${API_URL}${fixedPath}`;
+};
+
 const UsersIcon = () => (
   <svg
     width="18"
@@ -164,7 +177,7 @@ const CardModal = ({ user, cardUrl: initialCardUrl, onClose }) => {
   const handleRegenerate = async () => {
     setRegenerating(true);
     try {
-      const token = localStorage.getItem("token");
+      const token = sessionStorage.getItem("token");
       const res = await fetch(`${API_URL}/api/admin/generate-card/${user._id}`, {
         method: "POST",
         headers: {
@@ -341,9 +354,17 @@ const UserDetailsModal = ({ user, onClose }) => {
       <div className="card w-full max-w-lg p-6 shadow-2xl shadow-black/60 animate-slide-up max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gold-500/30 to-gold-700/20 border border-gold-500/30 flex items-center justify-center text-gold-400 font-bold font-display">
-              {(user?.fullName ?? "?")[0].toUpperCase()}
-            </div>
+            {user.profileImage ? (
+              <img
+                src={getImageUrl(user.profileImage)}
+                alt="Profile"
+                className="w-10 h-10 rounded-full object-cover border border-gold-500/30"
+              />
+            ) : (
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gold-500/30 to-gold-700/20 border border-gold-500/30 flex items-center justify-center text-gold-400 font-bold font-display text-xl">
+                {(user?.fullName ?? "?")[0].toUpperCase()}
+              </div>
+            )}
             <div>
               <h3 className="font-display text-lg font-semibold text-white">
                 {user.fullName}
@@ -387,12 +408,12 @@ const UserDetailsModal = ({ user, onClose }) => {
                     وجه البطاقة
                   </p>
                   <a
-                    href={`${API_URL}${user.idFront}`}
+                    href={`${getImageUrl(user.idFront)}`}
                     target="_blank"
                     rel="noopener noreferrer"
                   >
                     <img
-                      src={`${API_URL}${user.idFront}`}
+                      src={getImageUrl(user.idFront)}
                       alt="وجه البطاقة"
                       className="w-full rounded-lg object-cover hover:opacity-80 transition-opacity cursor-pointer"
                     />
@@ -405,12 +426,12 @@ const UserDetailsModal = ({ user, onClose }) => {
                     ظهر البطاقة
                   </p>
                   <a
-                    href={`${API_URL}${user.idBack}`}
+                    href={getImageUrl(user.idBack)}
                     target="_blank"
                     rel="noopener noreferrer"
                   >
                     <img
-                      src={`${API_URL}${user.idBack}`}
+                      src={getImageUrl(user.idBack)}
                       alt="ظهر البطاقة"
                       className="w-full rounded-lg object-cover hover:opacity-80 transition-opacity cursor-pointer"
                     />
@@ -545,8 +566,9 @@ export default function AdminDashboard() {
       if (err.response?.status === 401) {
         toast.error("انتهت الجلسة، سيتم تسجيل الخروج...");
         setTimeout(() => {
-          localStorage.removeItem("token");
-          window.location.href = "/login";
+sessionStorage.removeItem("token");
+      sessionStorage.removeItem("user");
+      window.location.href = "/login";
         }, 1500);
       } else {
         toast.error("Failed to load users");
@@ -580,7 +602,7 @@ export default function AdminDashboard() {
   const handleOpenCard = async (user) => {
     setSendingCard(user._id);
     try {
-      const token = localStorage.getItem("token");
+      const token = sessionStorage.getItem("token");
       const res = await fetch(
         `${API_URL}/api/admin/generate-card/${user._id}`,
         {
@@ -749,7 +771,7 @@ export default function AdminDashboard() {
                 <button
                   onClick={async () => {
                     try {
-                      const token = localStorage.getItem("token");
+                      const token = sessionStorage.getItem("token");
                       const res = await fetch(
                         `${API_URL}/api/admin/export-excel`,
                         {
@@ -826,9 +848,17 @@ export default function AdminDashboard() {
                       >
                         <td className="px-5 py-4">
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gold-500/30 to-gold-700/20 border border-gold-500/30 flex items-center justify-center text-gold-400 text-xs font-bold font-display flex-shrink-0">
-                              {(user?.fullName ?? "?")[0].toUpperCase()}
-                            </div>
+                            {user.profileImage ? (
+                              <img
+                                src={getImageUrl(user.profileImage)}
+                                alt="Profile"
+                                className="w-8 h-8 rounded-full object-cover border border-gold-500/30 flex-shrink-0"
+                              />
+                            ) : (
+                              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gold-500/30 to-gold-700/20 border border-gold-500/30 flex items-center justify-center text-gold-400 text-xs font-bold font-display flex-shrink-0 text-lg">
+                                {(user?.fullName ?? "?")[0].toUpperCase()}
+                              </div>
+                            )}
                             <div>
                               <p
                                 className="text-white font-medium font-body text-sm whitespace-nowrap cursor-pointer hover:text-gold-400 transition-colors"

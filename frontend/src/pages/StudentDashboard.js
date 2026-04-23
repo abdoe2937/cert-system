@@ -9,6 +9,15 @@ import EnrollmentPanel from "../components/EnrollmentPanel";
 
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
+// Handle both local uploads and Cloudinary URLs
+const getImageUrl = (path) => {
+  if (!path) return null;
+  if (path.startsWith("http")) return path;
+  const cleanPath = path.replace(/\\/g, "/");
+  const fixedPath = cleanPath.startsWith("/") ? cleanPath : "/" + cleanPath;
+  return `${API_URL}${fixedPath}`;
+};
+
 const CertIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
     <circle cx="12" cy="8" r="6" />
@@ -57,7 +66,7 @@ const ComplaintForm = ({ onSuccess }) => {
     if (!form.subject.trim() || !form.message.trim()) return toast.error("Please fill in all fields");
     setLoading(true);
     try {
-      const token = localStorage.getItem("token");
+      const token = sessionStorage.getItem("token");
       await axios.post(`${API_URL}/api/complaints`, form, { headers: { Authorization: `Bearer ${token}` } });
       toast.success("Complaint submitted successfully!");
       setForm({ subject: "", message: "" });
@@ -138,7 +147,7 @@ export default function StudentDashboard() {
 
   const fetchComplaints = () => {
     setLoadingComplaints(true);
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
     axios
       .get(`${API_URL}/api/complaints/mine`, { headers: { Authorization: `Bearer ${token}` } })
       .then(({ data }) => setComplaints(data.complaints))

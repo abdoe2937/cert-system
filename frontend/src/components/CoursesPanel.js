@@ -3,7 +3,7 @@ import toast from 'react-hot-toast';
 import axios from 'axios';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
-const authHeaders = () => ({ Authorization: `Bearer ${localStorage.getItem('token')}` });
+const authHeaders = () => ({ Authorization: `Bearer ${sessionStorage.getItem('token')}` });
 
 const LEVELS = [
   { value: 'all', label: 'All Levels' },
