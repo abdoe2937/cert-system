@@ -3,8 +3,38 @@ const fontkit = require("@pdf-lib/fontkit");
 const fs = require("fs");
 const path = require("path");
 
-const ensureDir = (dir) => {
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+const W = 1123;
+const H = 794;
+
+const darkText = rgb(0.12, 0.18, 0.28);
+
+// Try to load image from local path or from Cloudinary URL
+const loadImage = async (doc, imagePath) => {
+  if (!imagePath) return null;
+  
+  if (imagePath.startsWith("http")) {
+    try {
+      const response = await fetch(imagePath);
+      const arrayBuffer = await response.arrayBuffer();
+      const ext = imagePath.toLowerCase().includes(".png") ? ".png" : ".jpg";
+      return ext === ".png" 
+        ? await doc.embedPng(arrayBuffer) 
+        : await doc.embedJpg(arrayBuffer);
+    } catch (e) {
+      console.error("Failed to load Cloudinary image:", e.message);
+      return null;
+    }
+  }
+  
+  const fullPath = path.join(__dirname, "..", imagePath.replace(/^\//, ""));
+  if (!fs.existsSync(fullPath)) {
+    console.log("Image not found:", fullPath);
+    return null;
+  }
+  
+  const ext = path.extname(fullPath).toLowerCase();
+  const bytes = fs.readFileSync(fullPath);
+  return ext === ".png" ? await doc.embedPng(bytes) : await doc.embedJpg(bytes);
 };
 
 const generateCertificatePDF = async ({
@@ -18,120 +48,89 @@ const generateCertificatePDF = async ({
   const doc = await PDFDocument.create();
   doc.registerFontkit(fontkit);
 
-  // ── تحميل التمبليت ──────────────────────────────────────────
-  const templatePath = path.join(
-    __dirname,
-    "..",
-    "assets",
-    "certificate-template.png",
-  );
+  const templatePath = path.join(__dirname, "..", "assets", "certificate-template.png");
+  if (!fs.existsSync(templatePath)) {
+    throw new Error("Certificate template not found");
+  }
   const templateBytes = fs.readFileSync(templatePath);
-  const templateImg = await doc.embedPng(templateBytes);
+  const templateImg = doc.embedPng(templateBytes);
+  templateImg.scaleTo(W, H);
 
-  const { width: W, height: H } = templateImg;
   const page = doc.addPage([W, H]);
-
   page.drawImage(templateImg, { x: 0, y: 0, width: W, height: H });
 
-  // ── تحميل الفونت ────────────────────────────────────────────
-  const fontPath = path.join(
-    __dirname,
-    "..",
-    "assets",
-    "fonts",
-    "Cairo-Bold.ttf",
-  );
   let font;
+  const fontPath = path.join(__dirname, "..", "assets", "fonts", "Cairo-Bold.ttf");
   try {
-    const fontBytes = fs.readFileSync(fontPath);
-    font = await doc.embedFont(fontBytes);
+    if (fs.existsSync(fontPath)) {
+      font = await doc.embedFont(fs.readFileSync(fontPath));
+    } else {
+      font = await doc.embedFont(StandardFonts.HelveticaBold);
+    }
   } catch {
     font = await doc.embedFont(StandardFonts.HelveticaBold);
   }
 
-  const darkText = rgb(0.1, 0.13, 0.27);
-  const goldText = rgb(0.76, 0.6, 0.15);
+  const name = studentName || "";
+  const nameAr = studentNameAr || "";
 
-  // ── اسم الطالب ──────────────────────────────────────────────
-  const nameSize = W * 0.03;
-  const nameW = font.widthOfTextAtSize(studentName, nameSize);
-  page.drawText(studentName, {
-    x: (W - nameW) / 2,
-    y: H * 0.42, // ← نزلنا شوية من 0.4492
-    size: nameSize,
+  page.drawText(name, {
+    x: W * 0.5 - font.widthOfTextAtSize(name, 36) / 2,
+    y: H * 0.58,
+    size: 36,
     font,
     color: darkText,
   });
 
-  // ── اسم الكورس ──────────────────────────────────────────────
-  const courseSize = W * 0.022;
-  const courseW = font.widthOfTextAtSize(courseName, courseSize);
-  page.drawText(courseName, {
-    x: (W - courseW) / 2,
-    y: H * 0.3438,
-    size: courseSize,
+  page.drawText(nameAr, {
+    x: W * 0.5 - font.widthOfTextAtSize(nameAr, 32) / 2,
+    y: H * 0.52,
+    size: 32,
     font,
-    color: goldText,
+    color: darkText,
   });
 
-  // ── تاريخ الإصدار ────────────────────────────────────────────
-  const date = issuedAt
+  page.drawText(courseName, {
+    x: W * 0.5 - font.widthOfTextAtSize(courseName, 28) / 2,
+    y: H * 0.44,
+    size: 28,
+    font,
+    color: darkText,
+  });
+
+  const dateStr = issuedAt
     ? new Date(issuedAt).toLocaleDateString("en-GB")
     : new Date().toLocaleDateString("en-GB");
-  page.drawText(date, {
-    x: W * 0.4635,
-    y: H * 0.293,
-    size: W * 0.018,
+
+  page.drawText(dateStr, {
+    x: W * 0.38,
+    y: H * 0.18,
+    size: 18,
     font,
     color: darkText,
   });
 
-  // ── كود الطالب ──────────────────────────────────────────────
-  page.drawText(studentCode || "", {
-    x: W * 0.4635,
-    y: H * 0.2451,
-    size: W * 0.018,
-    font,
-    color: darkText,
-  });
-
-  // ── صورة البروفايل ───────────────────────────────────────────
+  // Profile image - works with both local and Cloudinary
   if (profileImage) {
-    const possiblePaths = [
-      path.join(__dirname, "..", profileImage.replace(/^\//, "")),
-      path.join(__dirname, "..", "uploads", "profiles", path.basename(profileImage)),
-      "/app" + profileImage,
-    ];
-    
-    let imgPath = possiblePaths.find(p => fs.existsSync(p));
-    if (imgPath) {
-      try {
-        const imgBytes = fs.readFileSync(imgPath);
-        const ext = path.extname(imgPath).toLowerCase();
-        const img =
-          ext === ".png"
-            ? await doc.embedPng(imgBytes)
-            : await doc.embedJpg(imgBytes);
-        const size = W * 0.09;
-        page.drawImage(img, {
-          x: W * 0.8424 - size / 2, // توسيط أفقي
-          y: H * 0.2400 - size / 2,
-          width: size,
-          height: size,
-        });
-      } catch (e) {
-        console.error("Profile image error:", e.message);
-      }
-    } else {
-      console.log("Profile image not found at:", possiblePaths);
+    const img = await loadImage(doc, profileImage);
+    if (img) {
+      const size = W * 0.09;
+      page.drawImage(img, {
+        x: W * 0.8424 - size / 2,
+        y: H * 0.2400 - size / 2,
+        width: size,
+        height: size,
+      });
     }
   }
 
-  // ── حفظ ─────────────────────────────────────────────────────
   const pdfBytes = await doc.save();
   const certsDir = path.join(__dirname, "..", "certificates");
-  ensureDir(certsDir);
-  const filename = `cert_${studentCode}_${Date.now()}.pdf`;
+  if (!fs.existsSync(certsDir)) {
+    fs.mkdirSync(certsDir, { recursive: true });
+  }
+
+  const filename = `cert_${studentCode || Date.now()}.pdf`;
   const filepath = path.join(certsDir, filename);
   fs.writeFileSync(filepath, pdfBytes);
 
