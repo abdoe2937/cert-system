@@ -97,42 +97,50 @@ const generateIDCard = async ({ user, overrides = {} }) => {
         ? "Sign Lang. Interpreter"
         : "Hearing";
 
-  page.drawText(name, {
-    x: scaleX(550),
-    y: scaleY(523),
-    size: textSize,
-    font,
-    color: navy,
-  });
-  page.drawText(studentCode, {
-    x: scaleX(550),
-    y: scaleY(573),
-    size: 22,
-    font,
-    color: navy,
-  });
-  page.drawText(nationalId, {
-    x: scaleX(550),
-    y: scaleY(624),
-    size: 18,
-    font,
-    color: navy,
-  });
-  page.drawText(status, {
-    x: scaleX(550),
-    y: scaleY(727),
-    size: 18,
-    font,
-    color: navy,
-  });
-  page.drawText(enrollmentDate, {
-    x: scaleX(550),
-    y: scaleY(676),
-    size: 18,
-    font,
-    color: navy,
-  });
-  
+  // 1. VOLUNTEER NAME
+page.drawText(name, {
+  x: scaleX(550),
+  y: scaleY(523),
+  size: textSize,
+  font,
+  color: navy,
+});
+
+// 2. STATUS (Hearing / Deaf / Interpreter)
+page.drawText(status, {
+  x: scaleX(550),
+  y: scaleY(573),
+  size: 22,
+  font,
+  color: navy,
+});
+
+// 3. NATIONAL NUMBER
+page.drawText(nationalId, {
+  x: scaleX(550),
+  y: scaleY(624),
+  size: 18,
+  font,
+  color: navy,
+});
+
+// 4. CODE (Student Code)
+page.drawText(studentCode, {
+  x: scaleX(550),
+  y: scaleY(676),
+  size: 18,
+  font,
+  color: navy,
+});
+
+// 5. ENROLLMENT DATE
+page.drawText(enrollmentDate, {
+  x: scaleX(550),
+  y: scaleY(727),
+  size: 18,
+  font,
+  color: navy,
+});
 
   // Profile image - works with both local and Cloudinary
   if (user.profileImage) {
