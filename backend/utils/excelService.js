@@ -119,4 +119,11 @@ const appendUserToExcel = async (user) => {
   console.log('   User: ' + (user.fullNameEn || user.fullNameAr));
 };
 
-module.exports = { appendUserToExcel, EXCEL_PATH };
+const exportExcel = (req, res) => {
+  if (!fs.existsSync(EXCEL_PATH)) {
+    return res.status(404).json({ success: false, message: "No Excel file found yet" });
+  }
+  res.download(EXCEL_PATH, "students.xlsx");
+};
+
+module.exports = { appendUserToExcel, EXCEL_PATH, exportExcel };
