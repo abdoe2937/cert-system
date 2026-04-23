@@ -97,8 +97,14 @@ const generateCertificatePDF = async ({
 
   // ── صورة البروفايل ───────────────────────────────────────────
   if (profileImage) {
-    const imgPath = path.join(__dirname, "..", profileImage.replace(/^\//, ""));
-    if (fs.existsSync(imgPath)) {
+    const possiblePaths = [
+      path.join(__dirname, "..", profileImage.replace(/^\//, "")),
+      path.join(__dirname, "..", "uploads", "profiles", path.basename(profileImage)),
+      "/app" + profileImage,
+    ];
+    
+    let imgPath = possiblePaths.find(p => fs.existsSync(p));
+    if (imgPath) {
       try {
         const imgBytes = fs.readFileSync(imgPath);
         const ext = path.extname(imgPath).toLowerCase();
@@ -116,6 +122,8 @@ const generateCertificatePDF = async ({
       } catch (e) {
         console.error("Profile image error:", e.message);
       }
+    } else {
+      console.log("Profile image not found at:", possiblePaths);
     }
   }
 

@@ -76,8 +76,15 @@ const generateIDCard = async ({ user, overrides = {} }) => {
 
   // ── صورة البروفايل ───────────────────────────────────────────
   if (user.profileImage) {
-    const imgPath = path.join(__dirname, "..", user.profileImage.replace(/^\//, ""));
-    if (fs.existsSync(imgPath)) {
+    // Try multiple path variations
+    const possiblePaths = [
+      path.join(__dirname, "..", user.profileImage.replace(/^\//, "")),
+      path.join(__dirname, "..", "uploads", "profiles", path.basename(user.profileImage)),
+      "/app" + user.profileImage,
+    ];
+    
+    let imgPath = possiblePaths.find(p => fs.existsSync(p));
+    if (imgPath) {
       try {
         const imgBytes = fs.readFileSync(imgPath);
         const ext = path.extname(imgPath).toLowerCase();
@@ -95,6 +102,8 @@ const generateIDCard = async ({ user, overrides = {} }) => {
       } catch (e) {
         console.error("Card image error:", e.message);
       }
+    } else {
+      console.log("Profile image not found at:", possiblePaths);
     }
   }
 
