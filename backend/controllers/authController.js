@@ -39,17 +39,10 @@ const register = async (req, res) => {
 
     // Profile image required
     // بعد ✅
-    const profileImage = req.files?.profileImage?.[0]
-      ? `/uploads/profiles/${req.files.profileImage[0].filename}`
-      : null;
-
-    const idFront = req.files?.idFront?.[0]
-      ? `/uploads/ids/${req.files.idFront[0].filename}`
-      : null;
-
-    const idBack = req.files?.idBack?.[0]
-      ? `/uploads/ids/${req.files.idBack[0].filename}`
-      : null;
+    // جديد - Cloudinary URL
+    const profileImage = req.files?.profileImage?.[0]?.path || null;
+    const idFront = req.files?.idFront?.[0]?.path || null;
+    const idBack = req.files?.idBack?.[0]?.path || null;
 
     const existing = await User.findOne({ email });
     if (existing) {
@@ -77,8 +70,8 @@ const register = async (req, res) => {
       experienceLevel,
       goal,
       profileImage,
-      idFront:  idFront  || '',
-      idBack:   idBack   || '',
+      idFront: idFront || "",
+      idBack: idBack || "",
     });
 
     // Save to Excel (background)
