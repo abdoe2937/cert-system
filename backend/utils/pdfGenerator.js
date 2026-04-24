@@ -2,13 +2,6 @@ const { PDFDocument, StandardFonts, rgb } = require("pdf-lib");
 const fontkit = require("@pdf-lib/fontkit");
 const fs = require("fs");
 const path = require("path");
-const cloudinary = require("cloudinary").v2;
-
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
 
 const W = 1123;
 const H = 794;
@@ -86,7 +79,7 @@ const generateCertificatePDF = async ({
   const name = studentName || "";
   page.drawText(name, {
     x: W * 0.5 - font.widthOfTextAtSize(name, 36) / 2,
-    y: H * 0.42,
+    y: H * 0.42,  // ← غير الرقم ده
     size: 36,
     font,
     color: darkText,
@@ -95,7 +88,7 @@ const generateCertificatePDF = async ({
   const course = courseName || "";
   page.drawText(course, {
     x: W * 0.5 - font.widthOfTextAtSize(course, 26) / 2,
-    y: H * 0.34,
+    y: H * 0.34,  // ← غير الرقم ده
     size: 26,
     font,
     color: darkText,
@@ -105,21 +98,21 @@ const generateCertificatePDF = async ({
     ? new Date(issuedAt).toLocaleDateString("en-GB")
     : new Date().toLocaleDateString("en-GB");
 
-  page.drawText(dateStr, {
-    x: W * 0.440,
-    y: H * 0.287,
-    size: 16,
-    font,
-    color: darkText,
-  });
+    page.drawText(dateStr, {
+      x: W * 0.440,
+      y: H * 0.287,  // ← رفعناه أكتر
+      size: 16,
+      font,
+      color: darkText,
+    });
 
-  page.drawText(studentCode || "", {
-    x: W * 0.440,
-    y: H * 0.240,
-    size: 16,
-    font,
-    color: darkText,
-  });
+    page.drawText(studentCode || "", {
+      x: W * 0.440,
+      y: H * 0.240,  // ← رفعناه أكتر
+      size: 16,
+      font,
+      color: darkText,
+    });
 
   if (profileImage) {
     const img = await loadImage(doc, profileImage);
@@ -134,23 +127,18 @@ const generateCertificatePDF = async ({
     }
   }
 
-  // ── رفع على Cloudinary بدل الحفظ على الـ disk ──
+  // Save to disk
   const pdfBytes = await doc.save();
+  const certsDir = path.join(__dirname, "..", "certificates");
+  if (!fs.existsSync(certsDir)) {
+    fs.mkdirSync(certsDir, { recursive: true });
+  }
 
-  const uploadResult = await new Promise((resolve, reject) => {
-    const stream = cloudinary.uploader.upload_stream(
-      {
-        resource_type: "raw",
-        folder: "certificates",
-        public_id: `cert_${studentCode || Date.now()}`,
-        format: "pdf",
-      },
-      (error, result) => (error ? reject(error) : resolve(result))
-    );
-    stream.end(Buffer.from(pdfBytes));
-  });
+  const filename = `cert_${studentCode || Date.now()}.pdf`;
+  const filepath = path.join(certsDir, filename);
+  fs.writeFileSync(filepath, pdfBytes);
 
-  return uploadResult.secure_url; // ← Cloudinary URL دايم شغال
+  return `/certificates/${filename}`;
 };
 
 module.exports = { generateCertificatePDF };

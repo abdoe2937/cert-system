@@ -61,7 +61,8 @@ const sendCertificate = async (req, res) => {
       issuedAt: new Date(),
     });
 
-    const pdfUrl = relativePath;
+    const filename = path.basename(relativePath);
+    const pdfUrl = `${BASE_URL}/certificates/${filename}`;
 
     const certificate = await Certificate.create({
       userId: user._id,
@@ -90,7 +91,12 @@ const sendCard = async (req, res) => {
     const cardsDir = path.join(__dirname, "..", "cards");
     if (!fs.existsSync(cardsDir)) fs.mkdirSync(cardsDir, { recursive: true });
 
-    const cardUrl = pdfBytes;
+    const filename = `card_${user.studentCode}.pdf`;
+    const filepath = path.join(cardsDir, filename);
+    fs.writeFileSync(filepath, Buffer.from(pdfBytes));
+
+    const cardUrl = `${BASE_URL}/cards/${filename}`;
+
     await User.findByIdAndUpdate(user._id, { cardUrl });
 
     res.json({ success: true, message: "تم إرسال الكارنيه بنجاح", cardUrl });

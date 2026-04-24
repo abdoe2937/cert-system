@@ -2,13 +2,6 @@ const { PDFDocument, StandardFonts, rgb } = require("pdf-lib");
 const fontkit = require("@pdf-lib/fontkit");
 const fs = require("fs");
 const path = require("path");
-const cloudinary = require("cloudinary").v2;
-
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
 
 const W = 1619;
 const H = 971;
@@ -74,6 +67,7 @@ const generateIDCard = async ({ user, overrides = {} }) => {
   const studentCode = overrides.studentCode || user.studentCode || "";
   const nationalId = overrides.nationalId || user.nationalId || "";
   const enrollmentDate = overrides.enrollmentDate || (user.createdAt ? new Date(user.createdAt).toLocaleDateString("en-GB") : "");
+
   const status = user.hearingType === "deaf" ? "Deaf" : user.hearingType === "interpreter" ? "Sign Lang. Interpreter" : "Hearing";
 
   page.drawText(name, { x: scaleX(550), y: scaleY(523), size: textSize, font, color: navy });
@@ -91,23 +85,8 @@ const generateIDCard = async ({ user, overrides = {} }) => {
     }
   }
 
-  // ── رفع على Cloudinary بدل الحفظ على الـ disk ──
   const pdfBytes = await doc.save();
-
-  const uploadResult = await new Promise((resolve, reject) => {
-    const stream = cloudinary.uploader.upload_stream(
-      {
-        resource_type: "raw",
-        folder: "cards",
-        public_id: `card_${user.studentCode || Date.now()}`,
-        format: "pdf",
-      },
-      (error, result) => (error ? reject(error) : resolve(result))
-    );
-    stream.end(Buffer.from(pdfBytes));
-  });
-
-  return uploadResult.secure_url; // ← Cloudinary URL دايم شغال
+  return pdfBytes;
 };
 
 module.exports = { generateIDCard };
