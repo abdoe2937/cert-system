@@ -3,19 +3,16 @@ import toast from "react-hot-toast";
 import Navbar from "../components/Navbar";
 import { useAuth } from "../context/AuthContext";
 import { getMyCertificates, getMyCard } from "../api";
-import axios from "axios";
+import API from "../api";
 import SuggestedCourses from "../components/SuggestedCourses";
 import EnrollmentPanel from "../components/EnrollmentPanel";
 
-const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:5000";
 
-// Handle both local uploads and Cloudinary URLs
-const getImageUrl = (path) => {
-  if (!path) return null;
-  if (path.startsWith("http")) return path;
-  const cleanPath = path.replace(/\\/g, "/");
-  const fixedPath = cleanPath.startsWith("/") ? cleanPath : "/" + cleanPath;
-  return `${API_URL}${fixedPath}`;
+const resolveUrl = (url) => {
+  if (!url) return null;
+  if (url.startsWith("http")) return url;
+  return `${BACKEND_URL}${url}`;
 };
 
 const CertIcon = () => (
@@ -24,22 +21,18 @@ const CertIcon = () => (
     <path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11" />
   </svg>
 );
+
 const ComplaintIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
   </svg>
 );
+
 const DownloadIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
     <polyline points="7 10 12 15 17 10" />
     <line x1="12" y1="15" x2="12" y2="3" />
-  </svg>
-);
-const CardIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <rect x="2" y="5" width="20" height="14" rx="2"/>
-    <line x1="2" y1="10" x2="22" y2="10"/>
   </svg>
 );
 
@@ -63,11 +56,11 @@ const ComplaintForm = ({ onSuccess }) => {
   const [loading, setLoading] = useState(false);
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.subject.trim() || !form.message.trim()) return toast.error("Please fill in all fields");
+    if (!form.subject.trim() || !form.message.trim())
+      return toast.error("Please fill in all fields");
     setLoading(true);
     try {
-      const token = sessionStorage.getItem("token");
-      await axios.post(`${API_URL}/api/complaints`, form, { headers: { Authorization: `Bearer ${token}` } });
+      await API.post("/api/complaints", form);
       toast.success("Complaint submitted successfully!");
       setForm({ subject: "", message: "" });
       onSuccess();
@@ -93,7 +86,7 @@ const ComplaintForm = ({ onSuccess }) => {
           <textarea className="input-field resize-none" rows={4} placeholder="Describe your complaint in detail..." value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} />
         </div>
         <button type="submit" disabled={loading} className="btn-primary flex items-center gap-2 disabled:opacity-50">
-          {loading ? (<><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Submitting...</>) : "Submit Complaint"}
+          {loading ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Submitting...</> : "Submit Complaint"}
         </button>
       </form>
     </div>
@@ -132,42 +125,37 @@ export default function StudentDashboard() {
   const [loadingCerts, setLoadingCerts] = useState(true);
   const [loadingComplaints, setLoadingComplaints] = useState(true);
   const [cardUrl, setCardUrl] = useState(null);
-  const [loadingCard, setLoadingCard] = useState(false);
+
+  const fetchComplaints = () => {
+    setLoadingComplaints(true);
+    API.get("/api/complaints/mine")
+      .then(({ data }) => setComplaints(data.complaints))
+      .catch(() => toast.error("Failed to load complaints"))
+      .finally(() => setLoadingComplaints(false));
+  };
 
   useEffect(() => {
+    if (!user) return;
+    const token = sessionStorage.getItem("token");
+    if (!token) return;
+
     getMyCertificates()
       .then(({ data }) => setCertificates(data.certificates))
       .catch(() => toast.error("Failed to load certificates"))
       .finally(() => setLoadingCerts(false));
 
     getMyCard()
-      .then(({ data }) => setCardUrl(data.cardUrl))
+      .then(({ data }) => {
+        if (data.success && data.cardUrl) {
+          setCardUrl(data.cardUrl);
+        }
+      })
       .catch(() => {});
-  }, []);
+  }, [user]);
 
-  const fetchComplaints = () => {
-    setLoadingComplaints(true);
-    const token = sessionStorage.getItem("token");
-    axios
-      .get(`${API_URL}/api/complaints/mine`, { headers: { Authorization: `Bearer ${token}` } })
-      .then(({ data }) => setComplaints(data.complaints))
-      .catch(() => toast.error("Failed to load complaints"))
-      .finally(() => setLoadingComplaints(false));
-  };
-
-  useEffect(() => { fetchComplaints(); }, []);
-
-  const handleDownloadCard = async () => {
-    setLoadingCard(true);
-    try {
-      const { data } = await getMyCard();
-      window.open(`${API_URL}${data.cardUrl}`, "_blank");
-    } catch {
-      toast.error("الكارنيه لم يتم إرساله بعد — تواصل مع الأدمن");
-    } finally {
-      setLoadingCard(false);
-    }
-  };
+  useEffect(() => {
+    if (user) fetchComplaints();
+  }, [user]);
 
   const tabs = [
     { id: "profile", label: "Profile", icon: "👤" },
@@ -222,7 +210,6 @@ export default function StudentDashboard() {
           ))}
         </div>
 
-        {/* Profile Tab */}
         {activeTab === "profile" && (
           <div className="card p-6 animate-slide-up">
             <h2 className="font-display text-lg font-semibold text-white mb-4">Profile Details</h2>
@@ -247,31 +234,28 @@ export default function StudentDashboard() {
               ))}
             </div>
 
-            {/* زرار الكارنيه — بيظهر بس لو الأدمن بعته */}
             {cardUrl ? (
-              <button
-                onClick={handleDownloadCard}
-                disabled={loadingCard}
-                className="btn-primary w-full mt-5 flex items-center justify-center gap-2 disabled:opacity-50"
+              <a
+                href={resolveUrl(cardUrl)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-primary w-full mt-5 flex items-center justify-center gap-2"
               >
-                {loadingCard ? (
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                ) : (
-                  <><CardIcon /> Download My ID Card</>
-                )}
-              </button>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="2" y="5" width="20" height="14" rx="2" />
+                  <line x1="2" y1="10" x2="22" y2="10" />
+                </svg>
+                Download My ID Card
+              </a>
             ) : (
               <div className="mt-5 p-4 rounded-xl bg-slate-800/40 border border-slate-700/40 text-center">
-                <p className="text-slate-500 text-sm font-body flex items-center justify-center gap-2">
-                  <CardIcon /> الكارنيه لم يتم إرساله بعد
-                </p>
+                <p className="text-slate-500 text-sm font-body">🪪 الكارنيه لم يتم إرساله بعد</p>
                 <p className="text-slate-600 text-xs mt-1 font-body">سيظهر هنا بعد مراجعة الأدمن</p>
               </div>
             )}
           </div>
         )}
 
-        {/* Certificates Tab */}
         {activeTab === "certificates" && (
           <div className="animate-slide-up">
             {loadingCerts ? (
@@ -301,7 +285,12 @@ export default function StudentDashboard() {
                         </p>
                       </div>
                     </div>
-                    <a href={`${API_URL}${cert.pdfUrl}`} target="_blank" rel="noopener noreferrer" download className="btn-secondary flex items-center gap-2 text-sm whitespace-nowrap">
+                    <a
+                      href={resolveUrl(cert.pdfUrl)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn-secondary flex items-center gap-2 text-sm whitespace-nowrap"
+                    >
                       <DownloadIcon /> Download PDF
                     </a>
                   </div>
@@ -311,7 +300,6 @@ export default function StudentDashboard() {
           </div>
         )}
 
-        {/* Complaints Tab */}
         {activeTab === "complaints" && (
           <div className="animate-slide-up">
             <ComplaintForm onSuccess={fetchComplaints} />
@@ -330,7 +318,9 @@ export default function StudentDashboard() {
               </div>
             ) : (
               <div className="grid gap-4">
-                {complaints.map((c) => <ComplaintCard key={c._id} complaint={c} />)}
+                {complaints.map((c) => (
+                  <ComplaintCard key={c._id} complaint={c} />
+                ))}
               </div>
             )}
           </div>

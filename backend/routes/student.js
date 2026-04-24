@@ -22,6 +22,7 @@ router.get('/my-card', async (req, res) => {
     if (!user.cardUrl) {
       return res.status(404).json({ success: false, message: 'لم يتم إنشاء الكارنيه بعد' });
     }
+    // ✅ ارجع الـ URL من Cloudinary
     res.json({ success: true, cardUrl: user.cardUrl });
   } catch (e) {
     res.status(500).json({ success: false, message: e.message });

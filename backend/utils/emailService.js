@@ -25,7 +25,7 @@ const uploadPDFToCloudinary = async (pdfBuffer, fileName) => {
     const uploadStream = cloudinary.uploader.upload_stream(
       {
         folder: "cert-system/certificates",
-        resource_type: "raw",
+        resource_type: "image",
         public_id: fileName.replace(".pdf", ""),
         format: "pdf",
       },

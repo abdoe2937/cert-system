@@ -1,8 +1,11 @@
 const fs = require("fs");
+const path = require("path");
 const User = require("../models/User");
 const Certificate = require("../models/Certificate");
 const { generateCertificatePDF } = require("../utils/pdfGenerator");
 const { generateIDCard } = require("../utils/idCardGenerator");
+
+const BASE_URL = process.env.BACKEND_URL || "http://localhost:5000";
 
 // GET /api/admin/users
 const getAllUsers = async (req, res) => {
@@ -45,14 +48,12 @@ const markCompleted = async (req, res) => {
 const sendCertificate = async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
-    if (!user) {
-      return res.status(404).json({ success: false, message: "المستخدم غير موجود" });
-    }
+    if (!user) return res.status(404).json({ success: false, message: "المستخدم غير موجود" });
 
     const courseName = req.body.courseName || user.courseName || "Volunteering Program";
 
-    // Generate PDF (saves to disk and returns URL)
-    const pdfUrl = await generateCertificatePDF({
+    // generateCertificatePDF بيحفظ الملف ويرجع الـ relative path زي /certificates/cert_XX.pdf
+    const relativePath = await generateCertificatePDF({
       studentName: user.fullNameEn || user.fullName || user.fullNameAr,
       profileImage: user.profileImage,
       courseName,
@@ -60,7 +61,9 @@ const sendCertificate = async (req, res) => {
       issuedAt: new Date(),
     });
 
-    // Save certificate record
+    const filename = path.basename(relativePath);
+    const pdfUrl = `${BASE_URL}/certificates/${filename}`;
+
     const certificate = await Certificate.create({
       userId: user._id,
       courseName,
@@ -73,6 +76,32 @@ const sendCertificate = async (req, res) => {
     res.status(201).json({ success: true, message: "تم إرسال الشهادة بنجاح", certificate });
   } catch (error) {
     console.error("Send certificate error:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// POST /api/admin/send-card/:id
+const sendCard = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ success: false, message: "المستخدم غير موجود" });
+
+    const pdfBytes = await generateIDCard({ user, overrides: {} });
+
+    const cardsDir = path.join(__dirname, "..", "cards");
+    if (!fs.existsSync(cardsDir)) fs.mkdirSync(cardsDir, { recursive: true });
+
+    const filename = `card_${user.studentCode}.pdf`;
+    const filepath = path.join(cardsDir, filename);
+    fs.writeFileSync(filepath, Buffer.from(pdfBytes));
+
+    const cardUrl = `${BASE_URL}/cards/${filename}`;
+
+    await User.findByIdAndUpdate(user._id, { cardUrl });
+
+    res.json({ success: true, message: "تم إرسال الكارنيه بنجاح", cardUrl });
+  } catch (error) {
+    console.error("Send card error:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -111,5 +140,6 @@ module.exports = {
   markCompleted,
   sendCertificate,
   generateCard,
+  sendCard,
   exportExcel,
 };

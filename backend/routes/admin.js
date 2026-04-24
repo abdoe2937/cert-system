@@ -6,6 +6,7 @@ const {
   markCompleted,
   sendCertificate,
   generateCard,
+  sendCard,      // ✅ أضفناها
   exportExcel,
 } = require("../controllers/adminController");
 const { protect, adminOnly } = require("../middleware/auth");
@@ -17,6 +18,7 @@ router.get("/users/:id", getUserById);
 router.patch("/complete/:id", markCompleted);
 router.post("/send-certificate/:id", sendCertificate);
 router.post("/generate-card/:id", generateCard);
-router.get('/export-excel', exportExcel);
+router.post("/send-card/:id", sendCard);      // ✅
+router.get("/export-excel", exportExcel);
 
 module.exports = router;

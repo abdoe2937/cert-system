@@ -160,19 +160,25 @@ const CardModal = ({ user, cardUrl: initialCardUrl, onClose }) => {
   });
 
   const handleSend = async () => {
-    setSending(true);
-    try {
-      await generateCard(user._id);
-      toast.success(
-        `✅ تم إرسال الكارنيه للطالب ${user.fullName || user.fullNameEn}`,
-      );
-      onClose();
-    } catch {
-      toast.error("فشل إرسال الكارنيه");
-    } finally {
-      setSending(false);
-    }
-  };
+  setSending(true);
+  try {
+    const token = sessionStorage.getItem("token");
+    const res = await fetch(`${API_URL}/api/admin/send-card/${user._id}`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+    if (!res.ok) throw new Error("Failed");
+    toast.success(`✅ تم إرسال الكارنيه للطالب ${user.fullName || user.fullNameEn}`);
+    onClose();
+  } catch {
+    toast.error("فشل إرسال الكارنيه");
+  } finally {
+    setSending(false);
+  }
+};
 
   const handleRegenerate = async () => {
     setRegenerating(true);
