@@ -86,7 +86,17 @@ const sendCard = async (req, res) => {
     const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ success: false, message: "المستخدم غير موجود" });
 
-    const pdfBytes = await generateIDCard({ user, overrides: {} });
+    const overrides = req.body && Object.keys(req.body).length > 0 ? req.body : {};
+
+    // ✅ احفظ التعديلات في الـ DB
+    if (Object.keys(overrides).length > 0) {
+      await User.findByIdAndUpdate(user._id, { $set: overrides });
+    }
+
+    const pdfBytes = await generateIDCard({ 
+      user: { ...user.toObject(), ...overrides }, // ✅ ادمج التعديلات
+      overrides: {} 
+    });
 
     const cardsDir = path.join(__dirname, "..", "cards");
     if (!fs.existsSync(cardsDir)) fs.mkdirSync(cardsDir, { recursive: true });
@@ -96,7 +106,6 @@ const sendCard = async (req, res) => {
     fs.writeFileSync(filepath, Buffer.from(pdfBytes));
 
     const cardUrl = `${BASE_URL}/cards/${filename}`;
-
     await User.findByIdAndUpdate(user._id, { cardUrl });
 
     res.json({ success: true, message: "تم إرسال الكارنيه بنجاح", cardUrl });

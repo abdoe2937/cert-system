@@ -3,25 +3,15 @@ import toast from "react-hot-toast";
 import Navbar from "../components/Navbar";
 import ComplaintsPanel from "../components/ComplaintsPanel";
 import CoursesPanel from "../components/CoursesPanel";
-import {
-  getAllUsers,
-  markCompleted,
-  sendCertificate,
-  generateCard,
-} from "../api";
+import { getAllUsers, markCompleted, sendCertificate } from "../api";
 
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
-// Handle both local uploads and Cloudinary URLs
 const getImageUrl = (path) => {
   if (!path) return null;
-  // If it's already a full URL (Cloudinary), return as is
   if (path.startsWith("http")) return path;
-  // Clean the path - remove backslashes, fix path format
   const cleanPath = path.replace(/\\/g, "/");
-  // Make sure it starts with /
   const fixedPath = cleanPath.startsWith("/") ? cleanPath : "/" + cleanPath;
-  // Otherwise, prepend API_URL for local uploads
   return `${API_URL}${fixedPath}`;
 };
 
@@ -160,38 +150,44 @@ const CardModal = ({ user, cardUrl: initialCardUrl, onClose }) => {
   });
 
   const handleSend = async () => {
-  setSending(true);
-  try {
-    const token = sessionStorage.getItem("token");
-    const res = await fetch(`${API_URL}/api/admin/send-card/${user._id}`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    });
-    if (!res.ok) throw new Error("Failed");
-    toast.success(`✅ تم إرسال الكارنيه للطالب ${user.fullName || user.fullNameEn}`);
-    onClose();
-  } catch {
-    toast.error("فشل إرسال الكارنيه");
-  } finally {
-    setSending(false);
-  }
-};
-
-  const handleRegenerate = async () => {
-    setRegenerating(true);
+    setSending(true);
     try {
       const token = sessionStorage.getItem("token");
-      const res = await fetch(`${API_URL}/api/admin/generate-card/${user._id}`, {
+      const res = await fetch(`${API_URL}/api/admin/send-card/${user._id}`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(editData),
+        body: JSON.stringify(editData), // ✅ بيبعت التعديلات
       });
+      if (!res.ok) throw new Error("Failed");
+      toast.success(
+        `✅ تم إرسال الكارنيه للطالب ${user.fullName || user.fullNameEn}`,
+      );
+      onClose();
+    } catch {
+      toast.error("فشل إرسال الكارنيه");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleRegenerate = async () => {
+    setRegenerating(true);
+    try {
+      const token = sessionStorage.getItem("token");
+      const res = await fetch(
+        `${API_URL}/api/admin/generate-card/${user._id}`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(editData),
+        },
+      );
       const blob = await res.blob();
       const blobUrl = window.URL.createObjectURL(blob);
       setCardUrl(blobUrl);
@@ -277,9 +273,18 @@ const CardModal = ({ user, cardUrl: initialCardUrl, onClose }) => {
                   <input
                     className="input-field text-sm"
                     value={editData[key]}
-                    onChange={(e) =>
-                      setEditData({ ...editData, [key]: e.target.value })
-                    }
+                    onChange={(e) => {
+                      if (key === "nationalId") {
+                        const val = e.target.value
+                          .replace(/\D/g, "")
+                          .slice(0, 14);
+                        setEditData({ ...editData, [key]: val });
+                      } else {
+                        setEditData({ ...editData, [key]: e.target.value });
+                      }
+                    }}
+                    maxLength={key === "nationalId" ? 14 : undefined}
+                    inputMode={key === "nationalId" ? "numeric" : "text"}
                   />
                 </div>
               ))}
@@ -414,7 +419,7 @@ const UserDetailsModal = ({ user, onClose }) => {
                     وجه البطاقة
                   </p>
                   <a
-                    href={`${getImageUrl(user.idFront)}`}
+                    href={getImageUrl(user.idFront)}
                     target="_blank"
                     rel="noopener noreferrer"
                   >
@@ -541,10 +546,7 @@ const SendCertModal = ({ user, onClose, onSuccess }) => {
 export default function AdminDashboard() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  // ✅ state منفصل للـ refresh عشان الجدول ميختفيش
   const [refreshing, setRefreshing] = useState(false);
-
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
   const [activeTab, setActiveTab] = useState("students");
@@ -554,27 +556,22 @@ export default function AdminDashboard() {
   const [cardModal, setCardModal] = useState(null);
   const [sendingCard, setSendingCard] = useState(null);
 
-  // ✅ fetchUsers بيقبل parameter "silent"
-  // silent=false  → أول تحميل → يظهر loading screen
-  // silent=true   → عند الضغط على Refresh → الجدول بيفضل ظاهر والأيقونة بتلف
   const fetchUsers = useCallback(async (silent = false) => {
     if (silent) {
       setRefreshing(true);
     } else {
       setLoading(true);
     }
-
     try {
       const { data } = await getAllUsers();
       setUsers(data.users);
     } catch (err) {
-      // ✅ لو الـ token منتهي (401) → logout تلقائي
       if (err.response?.status === 401) {
         toast.error("انتهت الجلسة، سيتم تسجيل الخروج...");
         setTimeout(() => {
-sessionStorage.removeItem("token");
-      sessionStorage.removeItem("user");
-      window.location.href = "/login";
+          sessionStorage.removeItem("token");
+          sessionStorage.removeItem("user");
+          window.location.href = "/login";
         }, 1500);
       } else {
         toast.error("Failed to load users");
@@ -585,10 +582,10 @@ sessionStorage.removeItem("token");
     }
   }, []);
 
-  // ── أول تحميل + Auto-refresh كل 30 ثانية ──────────────────
   useEffect(() => {
     fetchUsers(false);
   }, [fetchUsers]);
+
   const handleMarkCompleted = async (user) => {
     if (user.isCompleted) return;
     setCompleting(user._id);
@@ -772,8 +769,6 @@ sessionStorage.removeItem("token");
                   <option value="completed">Completed</option>
                   <option value="pending">In Progress</option>
                 </select>
-
-                {/* ── زرار Excel ── */}
                 <button
                   onClick={async () => {
                     try {
@@ -800,8 +795,6 @@ sessionStorage.removeItem("token");
                 >
                   ⬇ Excel
                 </button>
-
-                {/* ✅ زرار Refresh المُصلَح */}
                 <button
                   onClick={() => fetchUsers(true)}
                   disabled={refreshing}
