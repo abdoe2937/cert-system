@@ -78,4 +78,40 @@ const sendCertificateEmail = async ({ to, studentName, courseName, pdfBuffer, st
   return transporter.sendMail(mailOptions);
 };
 
-module.exports = { createTransporter, uploadPDFToCloudinary, sendCertificateEmail };
+const sendCardEmail = async ({ to, studentName, pdfBuffer, studentCode }) => {
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    console.warn("Email not configured - skipping");
+    return { skipped: true };
+  }
+
+  const transporter = createTransporter();
+
+  const mailOptions = {
+    from: `"PSE - كيان إشارة سلام" <${process.env.SMTP_USER}>`,
+    to,
+    subject: `كارنيه الطالب - ${studentName}`,
+    html: `
+      <div style="font-family: Cairo, sans-serif; direction: rtl; text-align: right; padding: 20px;">
+        <h2 style="color: #b8943f;">🪪 كارنيه الطالب</h2>
+        <p>مرحبا <strong>${studentName}</strong>,</p>
+        <p>مرفق كارنيه تعريفك الخاص بـ PSE.</p>
+        <p>يمكنك تحميله وطباعته للاستخدام الرسمي.</p>
+        <hr style="border: 1px solid #b8943f; margin: 20px 0;">
+        <p style="color: #666; font-size: 12px;">
+          PSE - كيان إشارة سلام<br>
+          www.pse-egypt.org
+        </p>
+      </div>
+    `,
+    attachments: [
+      {
+        filename: `card_${studentCode}.pdf`,
+        content: pdfBuffer,
+      },
+    ],
+  };
+
+  return transporter.sendMail(mailOptions);
+};
+
+module.exports = { createTransporter, uploadPDFToCloudinary, sendCertificateEmail, sendCardEmail };

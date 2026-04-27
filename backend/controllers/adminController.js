@@ -4,6 +4,7 @@ const User = require("../models/User");
 const Certificate = require("../models/Certificate");
 const { generateCertificatePDF } = require("../utils/pdfGenerator");
 const { generateIDCard } = require("../utils/idCardGenerator");
+const { sendCertificateEmail, sendCardEmail } = require("../utils/emailService"); // ✅ إضافة
 
 const BASE_URL = process.env.BACKEND_URL || "http://localhost:5000";
 
@@ -52,7 +53,6 @@ const sendCertificate = async (req, res) => {
 
     const courseName = req.body.courseName || user.courseName || "Volunteering Program";
 
-    // generateCertificatePDF بيحفظ الملف ويرجع الـ relative path زي /certificates/cert_XX.pdf
     const relativePath = await generateCertificatePDF({
       studentName: user.fullNameEn || user.fullName || user.fullNameAr,
       profileImage: user.profileImage,
@@ -72,6 +72,22 @@ const sendCertificate = async (req, res) => {
     });
 
     await User.findByIdAndUpdate(user._id, { isCompleted: true });
+
+    // ✅ ابعت الشهادة على الجيميل
+    try {
+      const pdfPath = path.join(__dirname, "..", "certificates", filename);
+      const pdfBuffer = fs.readFileSync(pdfPath);
+      await sendCertificateEmail({
+        to: user.email,
+        studentName: user.fullNameEn || user.fullName,
+        courseName,
+        pdfBuffer,
+        studentCode: user.studentCode,
+      });
+      console.log("✅ Certificate email sent to:", user.email);
+    } catch (emailErr) {
+      console.warn("⚠️ Certificate email failed:", emailErr.message);
+    }
 
     res.status(201).json({ success: true, message: "تم إرسال الشهادة بنجاح", certificate });
   } catch (error) {
@@ -93,9 +109,9 @@ const sendCard = async (req, res) => {
       await User.findByIdAndUpdate(user._id, { $set: overrides });
     }
 
-    const pdfBytes = await generateIDCard({ 
-      user: { ...user.toObject(), ...overrides }, // ✅ ادمج التعديلات
-      overrides: {} 
+    const pdfBytes = await generateIDCard({
+      user: { ...user.toObject(), ...overrides },
+      overrides: {},
     });
 
     const cardsDir = path.join(__dirname, "..", "cards");
@@ -107,6 +123,19 @@ const sendCard = async (req, res) => {
 
     const cardUrl = `${BASE_URL}/cards/${filename}`;
     await User.findByIdAndUpdate(user._id, { cardUrl });
+
+    // ✅ ابعت الكارنيه على الجيميل
+    try {
+      await sendCardEmail({
+        to: user.email,
+        studentName: user.fullNameEn || user.fullName,
+        pdfBuffer: Buffer.from(pdfBytes),
+        studentCode: user.studentCode,
+      });
+      console.log("✅ Card email sent to:", user.email);
+    } catch (emailErr) {
+      console.warn("⚠️ Card email failed:", emailErr.message);
+    }
 
     res.json({ success: true, message: "تم إرسال الكارنيه بنجاح", cardUrl });
   } catch (error) {
