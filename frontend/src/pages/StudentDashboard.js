@@ -7,7 +7,7 @@ import API from "../api";
 import SuggestedCourses from "../components/SuggestedCourses";
 import EnrollmentPanel from "../components/EnrollmentPanel";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:5000";
+const BACKEND_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
 const resolveUrl = (url) => {
   if (!url) return null;
