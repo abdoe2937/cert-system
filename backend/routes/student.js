@@ -22,8 +22,14 @@ router.get('/my-card', async (req, res) => {
     if (!user.cardUrl) {
       return res.status(404).json({ success: false, message: 'لم يتم إنشاء الكارنيه بعد' });
     }
-    // ✅ ارجع الـ URL من Cloudinary
-    res.json({ success: true, cardUrl: user.cardUrl });
+
+    // ✅ صلح أي localhost URL قديم
+    const fixedUrl = user.cardUrl.replace(
+      /^https?:\/\/localhost:\d+/,
+      process.env.BACKEND_URL || "https://cert-system-production.up.railway.app"
+    );
+
+    res.json({ success: true, cardUrl: fixedUrl });
   } catch (e) {
     res.status(500).json({ success: false, message: e.message });
   }
