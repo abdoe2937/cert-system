@@ -9,7 +9,7 @@ cloudinary.config({
 const uploadPDF = async (buffer, filename) => {
   return new Promise((resolve, reject) => {
     cloudinary.uploader.upload_stream(
-      { resource_type: "raw", public_id: filename, overwrite: true },
+      { resource_type: "raw", public_id: filename, overwrite: true, access_mode: "public", },
       (error, result) => {
         if (error) reject(error);
         else resolve(result.secure_url);
