@@ -1,5 +1,6 @@
-const express  = require('express');
-const router   = express.Router();
+const express = require('express');
+const router = express.Router();
+const axios = require('axios');
 const Certificate = require('../models/Certificate');
 const { protect } = require('../middleware/auth');
 
@@ -32,6 +33,24 @@ router.get('/my-card', async (req, res) => {
     res.json({ success: true, cardUrl: fixedUrl });
   } catch (e) {
     res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+// GET /api/student/download?url=...
+// ✅ Proxy downloads through backend to avoid Cloudinary 401
+router.get('/download', async (req, res) => {
+  try {
+    const { url } = req.query;
+    if (!url) return res.status(400).json({ message: "No URL provided" });
+
+    const response = await axios.get(url, { responseType: 'arraybuffer' });
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', 'attachment; filename="document.pdf"');
+    res.send(Buffer.from(response.data));
+  } catch (error) {
+    console.error("Proxy download error:", error.message);
+    res.status(500).json({ message: "Download failed" });
   }
 });
 
