@@ -4,9 +4,8 @@ const User = require("../models/User");
 const Certificate = require("../models/Certificate");
 const { generateCertificatePDF } = require("../utils/pdfGenerator");
 const { generateIDCard } = require("../utils/idCardGenerator");
-const { sendCertificateEmail, sendCardEmail } = require("../utils/emailService"); // ✅ إضافة
-
-const BASE_URL = process.env.BACKEND_URL || "http://localhost:5000";
+const { sendCertificateEmail, sendCardEmail } = require("../utils/emailService");
+const { uploadPDF } = require("../utils/cloudinary");
 
 // GET /api/admin/users
 const getAllUsers = async (req, res) => {
@@ -62,7 +61,11 @@ const sendCertificate = async (req, res) => {
     });
 
     const filename = path.basename(relativePath);
-    const pdfUrl = `${BASE_URL}/certificates/${filename}`;
+    const pdfPath = path.join(__dirname, "..", "certificates", filename);
+    const pdfBuffer = fs.readFileSync(pdfPath);
+
+    // ✅ ارفع على Cloudinary بدل BASE_URL
+    const pdfUrl = await uploadPDF(pdfBuffer, `certificates/${filename}`);
 
     const certificate = await Certificate.create({
       userId: user._id,
@@ -75,8 +78,6 @@ const sendCertificate = async (req, res) => {
 
     // ✅ ابعت الشهادة على الجيميل
     try {
-      const pdfPath = path.join(__dirname, "..", "certificates", filename);
-      const pdfBuffer = fs.readFileSync(pdfPath);
       await sendCertificateEmail({
         to: user.email,
         studentName: user.fullNameEn || user.fullName,
@@ -114,14 +115,8 @@ const sendCard = async (req, res) => {
       overrides: {},
     });
 
-    const cardsDir = path.join(__dirname, "..", "cards");
-    if (!fs.existsSync(cardsDir)) fs.mkdirSync(cardsDir, { recursive: true });
-
-    const filename = `card_${user.studentCode}.pdf`;
-    const filepath = path.join(cardsDir, filename);
-    fs.writeFileSync(filepath, Buffer.from(pdfBytes));
-
-    const cardUrl = `${BASE_URL}/cards/${filename}`;
+    // ✅ ارفع على Cloudinary بدل السيرفر
+    const cardUrl = await uploadPDF(Buffer.from(pdfBytes), `cards/card_${user.studentCode}`);
     await User.findByIdAndUpdate(user._id, { cardUrl });
 
     // ✅ ابعت الكارنيه على الجيميل
