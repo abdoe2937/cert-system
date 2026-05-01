@@ -24,6 +24,7 @@ const downloadFile = async (url, filename) => {
         headers: {
           Authorization: `Bearer ${sessionStorage.getItem("token")}`,
         },
+        redirect: 'follow',  // ✅ أضف ده
       }
     );
     if (!response.ok) throw new Error("Download failed");
