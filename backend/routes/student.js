@@ -43,11 +43,21 @@ router.get('/download', async (req, res) => {
     const { url } = req.query;
     if (!url) return res.status(400).json({ message: "No URL provided" });
 
-    const response = await axios.get(url, { responseType: 'arraybuffer' });
+    // استخدم https module مباشرة
+    const https = require('https');
+    
+    https.get(url, (cloudinaryRes) => {
+      if (cloudinaryRes.statusCode !== 200) {
+        return res.status(500).json({ message: `Cloudinary returned ${cloudinaryRes.statusCode}` });
+      }
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'attachment; filename="document.pdf"');
+      cloudinaryRes.pipe(res);
+    }).on('error', (err) => {
+      console.error("HTTPS error:", err.message);
+      res.status(500).json({ message: "Download failed" });
+    });
 
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', 'attachment; filename="document.pdf"');
-    res.send(Buffer.from(response.data));
   } catch (error) {
     console.error("Proxy download error:", error.message);
     res.status(500).json({ message: "Download failed" });
