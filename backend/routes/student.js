@@ -22,25 +22,33 @@ router.get('/download', async (req, res) => {
     const { url } = req.query;
     if (!url) return res.status(400).json({ message: "No URL provided" });
 
-    const match = url.match(/\/upload\/(?:v\d+\/)?(.+)$/);
-    if (!match) return res.status(400).json({ message: "Invalid URL" });
-
-    const publicId = match[1];
-
-    // ✅ استخدم Cloudinary SDK مباشرة عشان يجيب الـ buffer
-    const result = await cloudinary.api.resource(publicId, { resource_type: 'raw' });
-    
     const https = require('https');
-    https.get(result.secure_url + "?invalidate=true", (stream) => {
+    
+    // ✅ استخدم الـ URL مباشرة مع الـ API credentials في الـ header
+    const options = {
+      hostname: 'res.cloudinary.com',
+      path: new URL(url).pathname,
+      method: 'GET',
+      auth: `${process.env.CLOUDINARY_API_KEY}:${process.env.CLOUDINARY_API_SECRET}`
+    };
+
+    const request = https.request(options, (stream) => {
+      console.log("Status:", stream.statusCode);
+      if (stream.statusCode !== 200) {
+        return res.status(500).json({ message: `Error: ${stream.statusCode}` });
+      }
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', 'attachment; filename="document.pdf"');
       stream.pipe(res);
-    }).on('error', (err) => {
+    });
+
+    request.on('error', (err) => {
       res.status(500).json({ message: err.message });
     });
 
+    request.end();
+
   } catch (error) {
-    console.error("Download error:", error.message);
     res.status(500).json({ message: "Download failed" });
   }
 });
