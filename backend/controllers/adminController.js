@@ -65,7 +65,8 @@ const sendCertificate = async (req, res) => {
     const pdfBuffer = fs.readFileSync(pdfPath);
 
     // ✅ ارفع على Cloudinary بدل BASE_URL
-    const pdfUrl = await uploadPDF(pdfBuffer, `certificates/${filename}`);
+    const publicId = `certificates/${filename.replace('.pdf', '')}`;
+const pdfUrl = await uploadPDF(pdfBuffer, publicId);
 
     const certificate = await Certificate.create({
       userId: user._id,
