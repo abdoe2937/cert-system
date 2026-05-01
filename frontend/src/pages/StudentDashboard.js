@@ -15,33 +15,9 @@ const resolveUrl = (url) => {
   return `${BACKEND_URL}${url}`;
 };
 
-const downloadFile = async (url, filename) => {
-  try {
-    const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
-    const response = await fetch(
-      `${API_URL}/api/student/download?url=${encodeURIComponent(url)}`,
-      {
-        headers: {
-          Authorization: `Bearer ${sessionStorage.getItem("token")}`,
-        },
-      }
-    );
-    if (!response.ok) throw new Error("Download failed");
-
-    const blob = await response.blob();
-    const blobUrl = window.URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = blobUrl;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
-    toast.success("Download started!");
-  } catch (error) {
-    console.error("Download error:", error);
-    toast.error("Failed to download file");
-  }
+// ✅ حط ده بدله
+const downloadFile = (url, filename) => {
+  window.open(url, '_blank');
 };
 
 const CertIcon = () => (
