@@ -43,19 +43,26 @@ router.get('/download', async (req, res) => {
     const { url } = req.query;
     if (!url) return res.status(400).json({ message: "No URL provided" });
 
-    // استخدم https module مباشرة
+    console.log("Downloading from:", url); // ✅ log
+
     const https = require('https');
-    
-    https.get(url, (cloudinaryRes) => {
+    const http = require('http');
+    const client = url.startsWith('https') ? https : http;
+
+    client.get(url, (cloudinaryRes) => {
+      console.log("Cloudinary status:", cloudinaryRes.statusCode); // ✅ log
+      
       if (cloudinaryRes.statusCode !== 200) {
-        return res.status(500).json({ message: `Cloudinary returned ${cloudinaryRes.statusCode}` });
+        return res.status(500).json({ 
+          message: `Cloudinary returned ${cloudinaryRes.statusCode}` 
+        });
       }
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', 'attachment; filename="document.pdf"');
       cloudinaryRes.pipe(res);
     }).on('error', (err) => {
-      console.error("HTTPS error:", err.message);
-      res.status(500).json({ message: "Download failed" });
+      console.error("HTTPS error:", err.message); // ✅ log
+      res.status(500).json({ message: "Download failed: " + err.message });
     });
 
   } catch (error) {
