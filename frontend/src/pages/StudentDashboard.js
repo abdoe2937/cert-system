@@ -17,27 +17,13 @@ const resolveUrl = (url) => {
 
 const downloadFile = async (url, filename) => {
   try {
-    const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
-    const response = await fetch(
-      `${API_URL}/api/student/download?url=${encodeURIComponent(url)}`,
-      {
-        headers: {
-          Authorization: `Bearer ${sessionStorage.getItem("token")}`,
-        },
-        redirect: 'follow',  // ✅ أضف ده
-      }
-    );
-    if (!response.ok) throw new Error("Download failed");
-
-    const blob = await response.blob();
-    const blobUrl = window.URL.createObjectURL(blob);
     const link = document.createElement("a");
-    link.href = blobUrl;
+    link.href = url;
     link.download = filename;
+    link.target = '_blank';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
     toast.success("Download started!");
   } catch (error) {
     console.error("Download error:", error);
