@@ -56,6 +56,7 @@ router.get('/download', async (req, res) => {
     const signedUrl = cloudinary.url(publicId, {
       resource_type: 'raw',
       sign_url: true,
+      secure: true,
       expires_at: Math.floor(Date.now() / 1000) + 120,
     });
 
