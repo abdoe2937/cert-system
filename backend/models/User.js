@@ -7,8 +7,7 @@ const userSchema = new mongoose.Schema(
     // ── Names ────────────────────────────────────────────────
     fullNameAr: { type: String, trim: true },
     fullNameEn: { type: String, trim: true },
-    // Keep fullName as alias for backward compat
-    fullName: { type: String, trim: true },
+    fullName:   { type: String, trim: true },
 
     // ── Auth ─────────────────────────────────────────────────
     email: {
@@ -19,20 +18,20 @@ const userSchema = new mongoose.Schema(
       trim: true,
     },
     password: { type: String, required: true, minlength: 6, select: false },
-    phone: { type: String, required: true, trim: true },
+    phone:    { type: String, required: true, trim: true },
 
     // ── Profile Image ─────────────────────────────────────────
-    profileImage: { type: String, default: "" }, // path to uploaded file
+    profileImage: { type: String, default: "" },
 
     // ── ID Card Images ────────────────────────────────────────
     idFront: { type: String, default: "" },
-    idBack: { type: String, default: "" },
+    idBack:  { type: String, default: "" },
 
     // ── Personal ─────────────────────────────────────────────
-    address: { type: String, trim: true },
-    nationalId: { type: String, trim: true },
+    address:     { type: String, trim: true },
+    nationalId:  { type: String, trim: true },
     governorate: { type: String, trim: true },
-    gender: { type: String, enum: ["male", "female", ""] },
+    gender:      { type: String, enum: ["male", "female", ""] },
     hearingType: {
       type: String,
       enum: ["deaf", "hearing", "interpreter", ""],
@@ -41,7 +40,7 @@ const userSchema = new mongoose.Schema(
 
     // ── Education & Career ───────────────────────────────────
     education: { type: String, trim: true },
-    job: { type: String, trim: true },
+    job:       { type: String, trim: true },
 
     // ── Course ───────────────────────────────────────────────
     courseName: { type: String, trim: true },
@@ -55,23 +54,25 @@ const userSchema = new mongoose.Schema(
     // ── Course History ───────────────────────────────────────
     courseHistory: [
       {
-        courseName: String,
+        courseName:  String,
         completedAt: Date,
         certId: { type: mongoose.Schema.Types.ObjectId, ref: "Certificate" },
       },
     ],
 
     // ── System ───────────────────────────────────────────────
-    studentCode: { type: String, unique: true },
-    role: { type: String, enum: ["user", "admin"], default: "user" },
-    isCompleted: { type: Boolean, default: false },
-    cardUrl: { type: String, default: "" }, // ← أضيف ده
+    studentCode:  { type: String, unique: true },
+    role:         { type: String, enum: ["user", "admin"], default: "user" },
+    isCompleted:  { type: Boolean, default: false },
+    cardUrl:      { type: String, default: "" },
+
+    // ✅ بيانات الكارنيه PDF محفوظة في MongoDB
+    cardData: { type: Buffer, default: null },
   },
   { timestamps: true },
 );
 
 userSchema.pre("save", async function (next) {
-  // Sync fullName with fullNameEn for backward compatibility
   if (this.fullNameEn) this.fullName = this.fullNameEn;
   else if (this.fullNameAr) this.fullName = this.fullNameAr;
 
@@ -91,6 +92,7 @@ userSchema.methods.comparePassword = async function (candidate) {
 userSchema.methods.toJSON = function () {
   const obj = this.toObject();
   delete obj.password;
+  delete obj.cardData; // ✅ متبعتش الـ buffer في كل response
   return obj;
 };
 

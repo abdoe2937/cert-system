@@ -16,6 +16,10 @@ const certificateSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+
+    // ✅ بيانات الشهادة PDF محفوظة في MongoDB
+    pdfData: { type: Buffer, default: null },
+
     issuedAt: {
       type: Date,
       default: Date.now,
