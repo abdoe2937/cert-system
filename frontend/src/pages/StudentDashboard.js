@@ -17,13 +17,29 @@ const resolveUrl = (url) => {
 
 const downloadFile = async (url, filename) => {
   try {
+    const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
+    const token = sessionStorage.getItem("token");
+    
+    // حدد هل كارنيه أو شهادة
+    const isCard = filename.includes('card');
+    const endpoint = isCard 
+      ? `${API_URL}/api/student/download-card`
+      : `${API_URL}/api/student/download-certificate/${url.split('/').pop()}`;
+
+    const response = await fetch(endpoint, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    if (!response.ok) throw new Error("Download failed");
+    const blob = await response.blob();
+    const blobUrl = window.URL.createObjectURL(blob);
     const link = document.createElement("a");
-    link.href = url;
+    link.href = blobUrl;
     link.download = filename;
-    link.target = '_blank';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
     toast.success("Download started!");
   } catch (error) {
     console.error("Download error:", error);
@@ -300,7 +316,8 @@ export default function StudentDashboard() {
                       </div>
                     </div>
                     <button
-                      onClick={() => downloadFile(resolveUrl(cert.pdfUrl), `certificate-${cert.courseName}.pdf`)}
+                      // ✅ بعد
+onClick={() => downloadFile(cert._id, `certificate-${cert.courseName}.pdf`)}
                       className="btn-secondary flex items-center gap-2 text-sm whitespace-nowrap"
                     >
                       <DownloadIcon /> Download PDF

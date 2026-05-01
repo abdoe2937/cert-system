@@ -65,8 +65,14 @@ const sendCertificate = async (req, res) => {
     const pdfBuffer = fs.readFileSync(pdfPath);
 
     // ✅ ارفع على Cloudinary بدل BASE_URL
-    const publicId = `certificates/${filename.replace('.pdf', '')}`;
-const pdfUrl = await uploadPDF(pdfBuffer, publicId);
+    const pdfUrl = `cert_${user.studentCode}`;
+const certificate = await Certificate.create({
+  userId: user._id,
+  courseName,
+  pdfUrl,
+  pdfData: pdfBuffer, // ✅ احفظ الـ PDF في MongoDB
+  issuedAt: new Date(),
+});
 
     const certificate = await Certificate.create({
       userId: user._id,
@@ -117,8 +123,11 @@ const sendCard = async (req, res) => {
     });
 
     // ✅ ارفع على Cloudinary بدل السيرفر
-    const cardUrl = await uploadPDF(Buffer.from(pdfBytes), `cards/card_${user.studentCode}`);
-    await User.findByIdAndUpdate(user._id, { cardUrl });
+    const cardUrl = `card_${user.studentCode}`;
+await User.findByIdAndUpdate(user._id, { 
+  cardUrl,
+  cardData: Buffer.from(pdfBytes) // ✅ احفظ في MongoDB
+});
 
     // ✅ ابعت الكارنيه على الجيميل
     try {
