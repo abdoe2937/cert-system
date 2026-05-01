@@ -5,7 +5,6 @@ const Certificate = require("../models/Certificate");
 const { generateCertificatePDF } = require("../utils/pdfGenerator");
 const { generateIDCard } = require("../utils/idCardGenerator");
 const { sendCertificateEmail, sendCardEmail } = require("../utils/emailService");
-const { uploadPDF } = require("../utils/cloudinary");
 
 // GET /api/admin/users
 const getAllUsers = async (req, res) => {
@@ -34,7 +33,11 @@ const getUserById = async (req, res) => {
 // PATCH /api/admin/complete/:id
 const markCompleted = async (req, res) => {
   try {
-    const user = await User.findByIdAndUpdate(req.params.id, { isCompleted: true }, { new: true });
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { isCompleted: true },
+      { new: true }
+    );
     if (!user) {
       return res.status(404).json({ success: false, message: "المستخدم غير موجود" });
     }
@@ -52,6 +55,7 @@ const sendCertificate = async (req, res) => {
 
     const courseName = req.body.courseName || user.courseName || "Volunteering Program";
 
+    // ✅ توليد الـ PDF
     const relativePath = await generateCertificatePDF({
       studentName: user.fullNameEn || user.fullName || user.fullNameAr,
       profileImage: user.profileImage,
@@ -64,26 +68,19 @@ const sendCertificate = async (req, res) => {
     const pdfPath = path.join(__dirname, "..", "certificates", filename);
     const pdfBuffer = fs.readFileSync(pdfPath);
 
-    // ✅ ارفع على Cloudinary بدل BASE_URL
-    const pdfUrl = `cert_${user.studentCode}`;
-const certificate = await Certificate.create({
-  userId: user._id,
-  courseName,
-  pdfUrl,
-  pdfData: pdfBuffer, // ✅ احفظ الـ PDF في MongoDB
-  issuedAt: new Date(),
-});
-
+    // ✅ حفظ الشهادة في MongoDB (مرة واحدة بس)
     const certificate = await Certificate.create({
       userId: user._id,
       courseName,
-      pdfUrl,
+      pdfUrl: `cert_${user.studentCode}`,
+      pdfData: pdfBuffer,
       issuedAt: new Date(),
     });
 
+    // ✅ تحديث حالة الطالب
     await User.findByIdAndUpdate(user._id, { isCompleted: true });
 
-    // ✅ ابعت الشهادة على الجيميل
+    // ✅ إرسال الشهادة على الإيميل
     try {
       await sendCertificateEmail({
         to: user.email,
@@ -112,7 +109,7 @@ const sendCard = async (req, res) => {
 
     const overrides = req.body && Object.keys(req.body).length > 0 ? req.body : {};
 
-    // ✅ احفظ التعديلات في الـ DB
+    // ✅ حفظ التعديلات في الـ DB
     if (Object.keys(overrides).length > 0) {
       await User.findByIdAndUpdate(user._id, { $set: overrides });
     }
@@ -122,14 +119,15 @@ const sendCard = async (req, res) => {
       overrides: {},
     });
 
-    // ✅ ارفع على Cloudinary بدل السيرفر
     const cardUrl = `card_${user.studentCode}`;
-await User.findByIdAndUpdate(user._id, { 
-  cardUrl,
-  cardData: Buffer.from(pdfBytes) // ✅ احفظ في MongoDB
-});
 
-    // ✅ ابعت الكارنيه على الجيميل
+    // ✅ حفظ الكارنيه في MongoDB
+    await User.findByIdAndUpdate(user._id, {
+      cardUrl,
+      cardData: Buffer.from(pdfBytes),
+    });
+
+    // ✅ إرسال الكارنيه على الإيميل
     try {
       await sendCardEmail({
         to: user.email,
@@ -169,6 +167,7 @@ const generateCard = async (req, res) => {
   }
 };
 
+// GET /api/admin/export-excel
 const exportExcel = (req, res) => {
   const EXCEL_PATH = require("../utils/excelService").EXCEL_PATH;
   if (!fs.existsSync(EXCEL_PATH)) {
