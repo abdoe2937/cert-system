@@ -61,7 +61,7 @@ const generateIDCard = async ({ user, overrides = {} }) => {
   }
 
   const navy = rgb(0.06, 0.13, 0.27);
-  const textSize = 32;
+  const textSize = 38;
 
   const name = overrides.fullNameEn || user.fullNameEn || user.fullName || "";
   const studentCode = overrides.studentCode || user.studentCode || "";
@@ -70,11 +70,11 @@ const generateIDCard = async ({ user, overrides = {} }) => {
 
   const status = user.hearingType === "deaf" ? "Deaf" : user.hearingType === "interpreter" ? "Sign Lang. Interpreter" : "Hearing";
 
-  page.drawText(name, { x: scaleX(550), y: scaleY(523), size: 32, font, color: navy });
-  page.drawText(status, { x: scaleX(550), y: scaleY(573), size: 28, font, color: navy });
-  page.drawText(nationalId, { x: scaleX(550), y: scaleY(624), size: 24, font, color: navy });
-  page.drawText(studentCode, { x: scaleX(550), y: scaleY(676), size: 24, font, color: navy });
-  page.drawText(enrollmentDate, { x: scaleX(550), y: scaleY(727), size: 24, font, color: navy });
+  page.drawText(name, { x: scaleX(550), y: scaleY(523), size: 38, font, color: navy });
+  page.drawText(status, { x: scaleX(550), y: scaleY(573), size: 34, font, color: navy });
+  page.drawText(nationalId, { x: scaleX(550), y: scaleY(624), size: 30, font, color: navy });
+  page.drawText(studentCode, { x: scaleX(550), y: scaleY(676), size: 30, font, color: navy });
+  page.drawText(enrollmentDate, { x: scaleX(550), y: scaleY(727), size: 30, font, color: navy });
 
   if (user.profileImage) {
     const img = await loadImage(doc, user.profileImage);
