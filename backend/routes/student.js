@@ -45,14 +45,11 @@ router.get('/download', async (req, res) => {
     const { url } = req.query;
     if (!url) return res.status(400).json({ message: "No URL provided" });
 
-    // استخرج الـ public_id من الـ URL
     const match = url.match(/\/upload\/(?:v\d+\/)?(.+)$/);
     if (!match) return res.status(400).json({ message: "Invalid URL" });
     
     const publicId = match[1];
-    console.log("Public ID:", publicId);
 
-    // اعمل signed URL صالح لمدة دقيقتين
     const signedUrl = cloudinary.url(publicId, {
       resource_type: 'raw',
       sign_url: true,
@@ -60,10 +57,19 @@ router.get('/download', async (req, res) => {
       expires_at: Math.floor(Date.now() / 1000) + 120,
     });
 
-    console.log("Signed URL:", signedUrl);
-
-    // redirect للـ signed URL مباشرة
-    res.redirect(signedUrl);
+    // ✅ جيب الملف بالـ signed URL وابعته للـ frontend
+    const https = require('https');
+    https.get(signedUrl, (cloudinaryRes) => {
+      if (cloudinaryRes.statusCode !== 200) {
+        return res.status(500).json({ message: `Failed: ${cloudinaryRes.statusCode}` });
+      }
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'attachment; filename="document.pdf"');
+      cloudinaryRes.pipe(res);
+    }).on('error', (err) => {
+      console.error("Error:", err.message);
+      res.status(500).json({ message: "Download failed" });
+    });
 
   } catch (error) {
     console.error("Download error:", error.message);
