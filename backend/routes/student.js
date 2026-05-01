@@ -39,17 +39,8 @@ router.get('/download', async (req, res) => {
     const { url } = req.query;
     if (!url) return res.status(400).json({ message: "No URL provided" });
 
-    // ✅ أضف fl_attachment للـ URL مباشرة
-    const downloadUrl = url.replace('/upload/', '/upload/fl_attachment/');
-    
-    console.log("Download URL:", downloadUrl);
-
     const https = require('https');
-    https.get(downloadUrl, (stream) => {
-      console.log("Status:", stream.statusCode);
-      if (stream.statusCode !== 200) {
-        return res.status(500).json({ message: `Error: ${stream.statusCode}` });
-      }
+    https.get(url, (stream) => {
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', 'attachment; filename="document.pdf"');
       stream.pipe(res);
