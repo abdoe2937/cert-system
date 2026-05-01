@@ -9,10 +9,24 @@ cloudinary.config({
 const uploadPDF = async (buffer, filename) => {
   return new Promise((resolve, reject) => {
     cloudinary.uploader.upload_stream(
-      { resource_type: "raw", public_id: filename, overwrite: true, access_mode: "public", },
+      {
+        resource_type: "raw",
+        public_id: filename,
+        overwrite: true,
+        type: "upload",
+        access_mode: "public",
+        format: "pdf",
+      },
       (error, result) => {
         if (error) reject(error);
-        else resolve(result.secure_url);
+        else {
+          // ✅ غير الـ URL من res. لـ dl. عشان يفرض التحميل
+          const downloadUrl = result.secure_url.replace(
+            "res.cloudinary.com",
+            "dl.cloudinary.com"
+          );
+          resolve(downloadUrl);
+        }
       }
     ).end(buffer);
   });
