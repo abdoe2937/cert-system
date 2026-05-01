@@ -6,14 +6,14 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
+// backend/utils/cloudinary.js
 const uploadPDF = async (buffer, filename) => {
   return new Promise((resolve, reject) => {
     cloudinary.uploader.upload_stream(
       {
-        resource_type: "image",  // ✅ غير من raw لـ image
+        resource_type: "raw",  // ✅ رجّعه raw
         public_id: filename,
         overwrite: true,
-        format: "pdf",
       },
       (error, result) => {
         if (error) reject(error);
